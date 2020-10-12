@@ -18,6 +18,6 @@ def get_technical_indicators(dataset):
     dataset['ema'] = dataset['Close'].ewm(com=0.5).mean()
     
     # Create Momentum
-    dataset['momentum'] = dataset['Close']-1
+    dataset['momentum'] = dataset['Close']-1.
     
     return dataset
