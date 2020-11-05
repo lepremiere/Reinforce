@@ -243,7 +243,7 @@ class Backtesting:
                     lines.append(i)
             ymin, ymax = axs[0].get_ylim()
             axs[0].vlines(lines,ymin=ymin,ymax=ymax)
-        plt.savefig('Results.png')
+
         plt.show()
 
 
