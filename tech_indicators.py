@@ -1,8 +1,8 @@
 def get_technical_indicators(dataset):
 
     # Create 7 and 21 days Moving Average
-    dataset['ma7'] = dataset['Close'].rolling(window=7).mean()
-    dataset['ma21'] = dataset['Close'].rolling(window=21).mean()
+    dataset['ma9'] = dataset['Close'].rolling(window=15).mean()
+    dataset['ma21'] = dataset['Close'].rolling(window=45).mean()
     
     # Create MACD
     dataset['26ema'] = dataset['Close'].ewm(span=26).mean()
@@ -21,6 +21,5 @@ def get_technical_indicators(dataset):
     dataset['momentum'] = dataset['Close']-1
 
     i = dataset.isnull().sum().max()
-    dataset = dataset.iloc[dataset.isnull().sum().max():]
-    
+    dataset = dataset.iloc[i:]
     return dataset, i

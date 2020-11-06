@@ -9,12 +9,12 @@ class Agent:
     def get_action(self, data):
         P = [1., 0., 0., 0]
 
-        if data['ma7'].iloc[0] < data['ma21'].iloc[0] and data['ma7'].iloc[1] > data['ma21'].iloc[1]:
+        if data['ma9'].iloc[0] < data['ma21'].iloc[0] and data['ma9'].iloc[1] > data['ma21'].iloc[1]:
             P = [0., 1., 0., 0.] # Buy
-        elif data['ma7'].iloc[0] > data['ma21'].iloc[0] and data['ma7'].iloc[1] < data['ma21'].iloc[1]:
+        elif data['ma9'].iloc[0] > data['ma21'].iloc[0] and data['ma9'].iloc[1] < data['ma21'].iloc[1]:
             P = [0., 0., 1., 0.] # Sell
             
         else:
             P = [1., 0., 0., 0.]
         
-        return 1
+        return np.random.choice([0,1,-1,2], p=P)

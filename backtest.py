@@ -1,17 +1,21 @@
-import numpy as np 
-import pandas as pd
-from pandas import read_csv, to_datetime, to_timedelta
-import matplotlib.pyplot as plt 
-import tqdm
-from multiprocessing import Pool, cpu_count
 import time
-
+t = time.time()
+import numpy as np 
+from pandas import read_csv, to_datetime, DataFrame, Grouper, Timedelta, concat
+from matplotlib.pyplot import subplots, show
+import mplfinance as mpf
+import tqdm
+from multiprocessing import Pool, cpu_count, freeze_support
+from multiprocessing.pool import ThreadPool
+from mplfinance._utils import IntegerIndexDateTimeFormatter
 
 from tech_indicators import * 
 from agent import *
 
+####################################################################################################
+# Class
 class Backtesting:
-    def __init__(self, symbol, timeframe, agent, fraction=(0, 0), equity=100):
+    def __init__(self, symbol, timeframe, agent, fraction=(0, 0), equity=100, risk=0.1):
         self.symbol = symbol
         self.timeframe = timeframe
         new_file = 'D:/Data/' + symbol + '_' +  timeframe + '.csv'
@@ -28,32 +32,32 @@ class Backtesting:
                                  skiprows=range(1,fraction[0]+1),
                                  parse_dates=False)
 
+        # Generating Dataframes
         time = to_datetime(self.data['Date'],
                             format='%Y%m%d %H:%M:%S',
                             errors='coerce')
-
         self.data = self.data.iloc[:, 2:]
-        self.data['Date'] = time
+        self.data['Date'] = time   
         self.data, n = get_technical_indicators(self.data)
-        self.days = [g  for n, g in self.data.groupby(pd.Grouper(key='Date', freq='D'))]
+        self.data['Index'] = self.data.index - n
+
+
+        # Daily grouping
+        self.days = [g  for n, g in self.data.groupby(Grouper(key='Date', freq='D'))]
         self.data = self.data.set_index(time.iloc[n:])
-
         self.l = len(self.data)
-
-        self.trades = pd.DataFrame( columns=['Opentime', 'Closetime','Openindex', 'Closeindex',
+        self.trades = DataFrame( columns=['Opentime', 'Closetime','Openindex', 'Closeindex',
                                              'Open', 'Close', 'Profit', 'Volume', 'Direction'])
-        # self.status = {
 
-        #                 }
+        # Properties                                    
         self.market = {
                         'Spread': 1.2,
                         'MinLot': 0.1,
                         'Leverage': 30,
                         'MarginCall': 0.75
                         }
-
         self.settings = {
-                        'Risk': 0.8,
+                        'Risk': risk,
                         'MaxDrawDown': 0.9,
                         'TradingPause': 0
                         }  
@@ -62,138 +66,177 @@ class Backtesting:
         self.equity = equity
         self.agent = agent
         self.profits = []
-        self.actions = []
-        self.counter = 0
+        self.actions = []  
+        print('Initialized.')
+
     
-    def open(self, price, volume, time, i, direction):
-        if volume > self.market['MinLot']:
-            return [str(time), i, price, volume, direction]
-        else:
-            print('Insufficient Funds!')
+    def open(self, price, time, index, direction):
+        return [str(time), index, price, direction]
 
     def close(self, price, positions, time, index):
-        open_time, trade_info = positions[0][0], positions[0][1:]     
-        profit = ((price - trade_info[1]) * trade_info[3] - self.market['Spread']) * trade_info[2]
-        trade = [pd.to_datetime(open_time),
-                pd.to_datetime(time),
-                trade_info[0],
+        # positions[0] = time, index, price, direction  
+        profit = (price - positions[0][2]) * positions[0][3]
+        trade = [to_datetime(positions[0][0]),
+                to_datetime(time),
+                positions[0][1],
                 index,
-                trade_info[1],
+                positions[0][2],
                 price,
                 profit,
-                trade_info[2],
-                trade_info[3]]
+                positions[0][3]]
+        return profit, trade
 
-        return profit, trade, []
-            
-    def check_market_conditions(self, trades, time):
-        # if self.equity/self.equity_start < (1 - self.settings['MaxDrawDown']):
-        #     return False, 2
+    def check_market_conditions(self, trades, time, n=5):
+        time = to_datetime(time)
         if  (time.hour < 14 and time.minute < 30) or (time.hour > 21): # Day over
-            return False, 0
-        elif len(trades) > 0 \
-            and time - pd.to_datetime(trades['Closetime'][-1]) < pd.Timedelta(minutes=self.settings['TradingPause']): 
-            return False, 2
+                return False, 2
+        # elif len(trades) > 0 \
+        #         and time - to_datetime(trades['Closetime'][-1]) < Timedelta(minutes=n): 
+        #         return False, 0
         else: 
-            return True, 0   
-    
+                return True, 0
+
     def next(self, data):
-        # agent = Agent()
         actions = []
         positions = []
-        trades = pd.DataFrame(columns=['Opentime', 'Closetime','Openindex', 'Closeindex',
-                                        'Open', 'Close', 'Profit', 'Volume', 'Direction'])
+        trades = DataFrame(columns=['Opentime', 'Closetime','Openindex', 'Closeindex',
+                                        'Open', 'Close', 'Profit', 'Direction'])
         profits = []
         size_data = len(data)
 
         for i in range(size_data):
-            price = data.iloc[i, 2]
-            time = pd.to_datetime(data['Date'].iloc[i])  
-            volume = round((self.equity * self.settings['Risk']) / (price / self.market['Leverage']), 2)          
+            price = data['Close'].iloc[i]
+            time = data['Date'].iloc[i]
+            index = data['Index'].iloc[i]        
 
             # Decision Making of the Agent
-            check, check_action = self.check_market_conditions(trades, time)
-            if i > 2:
+            check, check_action = self.check_market_conditions(trades, time, 5)
+            if i > 15:
                 action = self.agent.get_action(data.iloc[i-2:i])
             else:
                 action = check_action
-
-            if i+3 > size_data:
+            if i+15 > size_data:
                 action = 2
           
             # Action Execution
             if action == 0: pass
             if len(positions) > 0:
-                status = action + positions[0][-1]
-                if action == 2: 
-                    profit, trade, _ = self.close(price, positions, time, self.counter)
+                status = positions[0][-1] + action
+                if action == 2 or status == 0: 
+                    profit, trade = self.close(price, positions, time, index)
                     profits.append(profit)
                     trades.loc[trade[0]] = trade
                     positions = []
+                if action == 1:  positions.append(self.open(price, time, index, 1))  
+                if action == -1: positions.append(self.open(price, time, index, -1))
             else:
-                if action == 1:  positions.append(self.open(price, volume, time, self.counter, 1))  
-                if action == -1: positions.append(self.open(price, volume, time, self.counter, -1))
+                if action == 1:  positions.append(self.open(price, time, index, 1))  
+                if action == -1: positions.append(self.open(price, time, index, -1))
 
             actions.append(action)
-            self.counter += 1
 
         return actions, trades, profits
 
     def run(self):
-        n = 12
+        n = 6
         t1 = time.time()
         results = []
         p = Pool(n)
-        # for x in tqdm.tqdm(p.imap_unordered(self.next, self.days), total=len(self.days)):
-        #     results.append(x)
-        results = p.map(self.next, self.days)
 
+        # Do stuff in parallel
+        results = p.map(self.next, self.days)
         for actions, trades, profits in results:
             self.actions = np.concatenate([self.actions, actions])
-            self.trades = pd.concat([self.trades, trades])
-            self.profits = np.concatenate([self.profits, profits])  
+            self.trades = concat([self.trades, trades])
+            self.profits = np.concatenate([self.profits, profits]) 
+
+        # Calculate volumes and profits
+        volumes = []
+        profits = []
+        equities = []
+        equity = self.equity_start
+        for j in range(len(self.trades)):
+            if self.settings['Risk'] == 0:
+                volume = 1
+            else:
+                volume = (equity * self.settings['Risk']) / (self.trades['Open'].iloc[j] / self.market['Leverage'])
+            if volume < self.market['MinLot']:
+                profit = 0
+                volume = 0
+                profit = 0
+            else:
+                profit = (self.trades['Profit'].iloc[j] - self.market['Spread']) * volume
+            equity += profit
+            equities.append(equity)
+            volumes.append(volume)
+        
+        self.trades['Volume'] = volumes
+        self.trades['Equities'] = equities
         t2 = time.time() 
+
         print(str(len(self.days)), 'Days @',
               str(round(len(self.days)/(t2-t1), 1)), 'Days/s with',
-              n, 'Worker in', str(round(t2-t1, 1)), 'seconds')
-    
+              n, 'Worker in', str(round(t2-t1, 1)), 'seconds.',
+              'End Result:', str(round(equity)))
+        
     def reset(self):
         self.profits = []
         self.actions = []
-        self.trades = pd.DataFrame( columns=['Opentime', 'Closetime','Openindex', 'Closeindex',
-                                             'Open', 'Close', 'Profit', 'Volume', 'Direction'])
+        self.trades = DataFrame( columns=['Opentime', 'Closetime','Openindex', 'Closeindex',
+                                             'Open', 'Close', 'Profit', 'Direction'])
 
-    def plot(self, time=True):
-        fig, axs = plt.subplots(nrows=4, ncols=1, gridspec_kw={'height_ratios': [5,3,1,2]}, sharex=True)
+####################################################################################################
+####################################################################################################
+####################################################################################################
+# Plotting
+    def plot(self, dates=True, week_lines=True, plot_trades=True):
+        t = time.time()
+        fig, axs = subplots(nrows=4, ncols=1, sharex=True, gridspec_kw={'height_ratios':[5,3,1,2]})
+        
+        # ax = mpf.plot(self.data,
+        #          type='candle',
+        #          style='yahoo',
+        #          mav=(9,21),
+        #          ax=axs[0],
+        #          axtitle=self.symbol + '_' + self.timeframe,
+        #          returnfig=True)
 
         # Time parameter
-        if time:
-            x = pd.to_datetime(self.data.index)
+        if dates:
+            x = to_datetime(self.data.index)
             time_fmt = ['Opentime', 'Closetime']
         else:
             x = range(self.l)
             time_fmt = ['Openindex', 'Closeindex']
 
-        axs[0].plot(x, self.data['upper_band'], color='lightsteelblue')
-        axs[0].plot(x, self.data['lower_band'], color='lightsteelblue')        
-        axs[0].plot(x, self.data['ma21'], color='orange')
-        axs[0].plot(x, self.data['ma7'], color='gold')
-        axs[0].plot(x, self.data['Close'].values, color='blue')
-        axs[0].set_title('Symbol: ' + self.symbol +\
-                         '      Timeframe: ' + self.timeframe +  ' \n' +\
+        axs[0].plot(x, self.data['upper_band'],     color='lightsteelblue')
+        axs[0].plot(x, self.data['lower_band'],     color='lightsteelblue')        
+        axs[0].plot(x, self.data['ma21'],           color='orange')
+        axs[0].plot(x, self.data['ma9'],            color='gold')
+        axs[0].plot(x, self.data['Close'].values,   color='blue')
+
+        axs[0].set_title('Symbol: '     + self.symbol + '      '+\
+                         'Timeframe: '  + self.timeframe + ' \n' +\
                          str(len(self.days)) + ' Days: ' +\
-                         str(pd.to_datetime(self.days[0]['Date'].iloc[0]).date()) + ' --- ' +\
-                         str(pd.to_datetime(self.days[-1]['Date'].iloc[-1]).date()) )
-        axs[0].set_ylabel('Close [$]')
+                         str(to_datetime(self.days[0]['Date'].iloc[0]).date()) + ' --- ' +\
+                         str(to_datetime(self.days[-1]['Date'].iloc[-1]).date()) )
+        axs[0].set_ylabel('Close [$]')      
 
         # Plotting Profit
-        line, = axs[1].plot(self.trades[time_fmt[1]], self.equity_start + np.cumsum(self.trades['Profit'].values)) 
-        line.set_drawstyle("steps-post")
+        line1, = axs[1].plot(self.trades[time_fmt[1]],
+                             self.trades['Equities']) 
+        line2, = axs[1].plot(self.trades[time_fmt[1]], 
+                             self.equity_start + np.cumsum(self.trades['Profit'].values))
+        line2.set_drawstyle("steps-post")
+        line1.set_drawstyle("steps-post")
         ratio = np.sum(np.array(self.trades['Profit'].values) > 0, axis=0) / len(self.trades) * 100
         axs[1].set_title('Profit: ' + str(round(np.sum(self.trades['Profit'].values),1)) +
-                         ' Total Trades: ' + str(len(self.trades)) +
+                         '$ Total Trades: ' + str(len(self.trades)) +
                          ' Win Ratio: ' + str(round(ratio, 2)) + '%')    
         axs[1].set_ylabel('Cummulative Profit [$]')
+        xmin, xmax = axs[1].get_xlim()
+        axs[1].hlines(self.equity_start, xmin=xmin, xmax=xmax, color='red', alpha=0.5)
+        axs[1].legend((line1,line2), ('Dynamic', 'Static'), loc='upper left')
 
         # Plotting Volume
         axs[2].bar(self.trades[time_fmt[1]],
@@ -213,44 +256,66 @@ class Backtesting:
         axs[3].set_ylabel('Action [a.u.]')
 
         # Plotting the trades
-        X, Y = self.trades[time_fmt], self.trades[['Open', 'Close']] 
+        if len(self.trades) > 1000:
+            filt = 0
+        else:
+            filt = 0
+        
+        if plot_trades:
+            X, Y = self.trades[time_fmt], self.trades[['Open', 'Close']] 
 
-        filt = 0
-        if len(Y) > 1e3:
-            filt =  1  
-        for i in range(len(X)):
-            if abs(self.trades['Profit'].iloc[i]) > filt:
-                if self.trades['Direction'].iloc[i] > 0:
-                    marker = '^'
-                else: 
-                    marker = 'v'                
-                if self.trades['Profit'].iloc[i] > 0:
-                    color = 'green'
-                elif self.trades['Profit'].iloc[i] < 0:
-                    color = 'red'
-                line, = axs[0].plot(X.iloc[i],Y.iloc[i], color=color)
-                line.set_marker(marker)
-                line.set_markeredgecolor('black')
-                line.set_markerfacecolor('yellow')       
+            for i in range(len(X)):
+                if abs(self.trades['Profit'].iloc[i]) > filt:
+                    if self.trades['Direction'].iloc[i] > 0:
+                        marker = '^'
+                    else: 
+                        marker = 'v'                
+                    if self.trades['Profit'].iloc[i] > 0:
+                        color = 'green'
+                    elif self.trades['Profit'].iloc[i] < 0:
+                        color = 'red'
+                    line, = axs[0].plot(X.iloc[i],Y.iloc[i], color=color)
+                    line.set_marker(marker)
+                    line.set_markeredgecolor('black')
+                    line.set_markerfacecolor('yellow')       
 
         # Daily lines for time=False
-        if not time:
-            lines = []
+        if week_lines:
+            weekly_lines = []
+            daily_lines = []
             for i in range(1, self.l): 
-                t1 = pd.to_datetime(self.data.index[i]).day
-                t2 = pd.to_datetime(self.data.index[i-1]).day
-                if t2 < t1:
-                    lines.append(i)
+                w1 = to_datetime(self.data.index[i]).week
+                w2 = to_datetime(self.data.index[i-1]).week
+                d1 = to_datetime(self.data.index[i]).day
+                d2 = to_datetime(self.data.index[i-1]).day
+                if w2 < w1:
+                    if dates:
+                        weekly_lines.append(self.data.index[i])
+                    else:
+                        weekly_lines.append(i)
+                if d2 < d1:
+                    if dates:
+                        daily_lines.append(self.data.index[i])
+                    else:
+                        daily_lines.append(i)
+
             ymin, ymax = axs[0].get_ylim()
-            axs[0].vlines(lines,ymin=ymin,ymax=ymax)
+            axs[0].vlines(weekly_lines,ymin=ymin,ymax=ymax)
+            axs[0].vlines(daily_lines,ymin=ymin,ymax=ymax, alpha=0.3)
 
-        plt.show()
-
+        print('Plot: ', str(round(time.time()-t,1)))
+        show()
 
 if __name__ == "__main__":
-
+    
     agent = Agent()
-    bt = Backtesting(symbol='US30', timeframe='M1', agent=agent, fraction=(10000, 10000), equity=10000)
+    bt = Backtesting(symbol='US30',
+                     timeframe='M1',
+                     agent=agent,
+                     fraction=(10000, 10000),
+                     equity=1000,
+                     risk=0.1)
     bt.reset()
     bt.run()
-    bt.plot(time=True)
+    bt.plot(dates=True, week_lines=True, plot_trades=False)
+   
