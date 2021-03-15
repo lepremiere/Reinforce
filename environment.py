@@ -1,14 +1,18 @@
-class make_environment():
-    def __init__(self, data) -> None:
-        self.data = data 
-        self.len = len(self.data)  
-        self.idx = 0 
+import numpy as np
 
-    def action_spec(self):
+class environment():
+    def __init__(self, days) -> None:
+        self.days = days
+        self.len = len(self.days)  
+        self.idx = 0 
+        self.action_space_n = 4
+        self.observation_space_n = self.days[0].shape[1]
+
+    def action_space(self):
         return [0, 1, 2, 3]
 
-    def observation_spec(self):
-        return self.data.dtypes
+    def observation_space(self):
+        return self.days[0].dtypes
     
     def step(self, action):
 
@@ -25,6 +29,8 @@ class make_environment():
 
     def reset(self):
         self.idx = 0
+        i = np.random.choice(range(len(self.days)))
+        self.data = self.days[i]
         state = self.data.iloc[0].values
-        return state, 0, False
+        return state
 
