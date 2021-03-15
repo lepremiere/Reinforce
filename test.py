@@ -10,11 +10,11 @@ print(f'\nAction space: \n{env.action_spec()}')
 print(f'\nObservation space: \n{env.observation_spec()}')
 
 state, reward, done = env.reset()
-agent = Agent(env)
+agent = Agent()
 
 done = False
 while not done:
     action = agent.get_action(state)
     state, reward, done = env.step(action)
     print(f'Observation: {state} Action: {action} Reward: {reward}')
-
+print(X_train[0].shape)
