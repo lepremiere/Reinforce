@@ -1,18 +1,14 @@
-import numpy as np 
-import pandas as pd 
-import matplotlib.pyplot as plt 
-
 class make_environment():
-    def __init__(self, df) -> None:
-        self.df = df 
-        self.len = len(self.df)  
+    def __init__(self, data) -> None:
+        self.data = data 
+        self.len = len(self.data)  
         self.idx = 0 
 
     def action_spec(self):
         return [0, 1, 2, 3]
 
     def observation_spec(self):
-        return self.df.dtypes
+        return self.data.dtypes
     
     def step(self, action):
 
@@ -20,16 +16,15 @@ class make_environment():
             self.idx += 1
             done = False
         else:
-            print('Last step', self.idx,'/',self.len)
-            input('?')
             done = True
-            
-        return self.df.iloc[self.idx].values, done
+
+        state = self.data.iloc[self.idx].values
+        reward = 1
+        
+        return state, reward, done
 
     def reset(self):
         self.idx = 0
+        state = self.data.iloc[0].values
+        return state, 0, False
 
-        return self.df.iloc[0].values, False
-
-    def print(self):
-        print(self.df.tail())
