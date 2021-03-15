@@ -7,9 +7,9 @@ if __name__ == "__main__":
     bt = Backtesting(symbol='US30',
                      timeframe='M1',
                      agent=agent,
-                     fraction=(10000, 50000),
+                     fraction=(0, 0),
                      equity=10000,
-                     risk=0.5)
+                     risk=0.1)
     bt.reset()
     bt.run()
     bt.plot(dates=False, week_lines=True, plot_trades=True)
