@@ -310,4 +310,4 @@ if __name__ == "__main__":
     bt.reset()
     bt.run()
     bt.plot(dates=True, week_lines=True, plot_trades=True)
-   
+
