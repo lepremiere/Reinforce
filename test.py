@@ -20,6 +20,7 @@ import numpy as np
 from itertools import compress
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
+from lib.tech_indicators import get_technical_indicators
 
 df = pd.read_csv('D:/Data/SP500_M1.csv', nrows=100000)
 df.Date = pd.to_datetime(df.Date)
