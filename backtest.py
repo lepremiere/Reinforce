@@ -14,23 +14,17 @@ from agent import *
 
 ####################################################################################################
 # Class
-class Backtesting:
+class Backtesting():
     def __init__(self, symbol, timeframe, agent, fraction=(0, 0), equity=100, risk=0.1):
         self.symbol = symbol
         self.timeframe = timeframe
         new_file = 'D:/Data/' + symbol + '_' +  timeframe + '.csv'
 
-        if fraction[1] > 0:
-            self.data = read_csv(new_file,
-                                header=0,
-                                parse_dates=False,
-                                skiprows=range(1,fraction[0]+1),
-                                nrows=fraction[1])
-        elif fraction[1] == 0:
-            self.data = read_csv(new_file,
-                                 header=0,
-                                 skiprows=range(1,fraction[0]+1),
-                                 parse_dates=False)
+        self.data = read_csv(new_file,
+                            header=0,
+                            parse_dates=False,
+                            skiprows=range(1,fraction[0]+1),
+                            nrows=fraction[1])
 
         # Generating Dataframes
         time = to_datetime(self.data['Date'],
@@ -41,19 +35,18 @@ class Backtesting:
         self.data, n = get_technical_indicators(self.data)
         self.data['Index'] = self.data.index - n
 
-
         # Daily grouping
         self.days = [g  for n, g in self.data.groupby(Grouper(key='Date', freq='D'))]
         self.data = self.data.set_index(time.iloc[n:])
         self.l = len(self.data)
         self.trades = DataFrame( columns=['Opentime', 'Closetime','Openindex', 'Closeindex',
-                                             'Open', 'Close', 'Profit', 'Volume', 'Direction'])
+                                          'Open', 'Close', 'Profit', 'Volume', 'Direction'])
 
         # Properties                                    
         self.market = {
                         'Spread': 1.2,
                         'MinLot': 0.1,
-                        'Leverage': 30,
+                        'Leverage': 20,
                         'MarginCall': 0.75
                         }
         self.settings = {
@@ -89,7 +82,7 @@ class Backtesting:
     def check_market_conditions(self, trades, time, n=5):
         time = to_datetime(time)
         if  (time.hour < 14 and time.minute < 30) or (time.hour > 21): # Day over
-                return False, 2
+                return False, 3
         # elif len(trades) > 0 \
         #         and time - to_datetime(trades['Closetime'][-1]) < Timedelta(minutes=n): 
         #         return False, 0
@@ -116,22 +109,22 @@ class Backtesting:
             else:
                 action = check_action
             if i+15 > size_data:
-                action = 2
+                action = 3
           
             # Action Execution
             if action == 0: pass
             if len(positions) > 0:
                 status = positions[0][-1] + action
-                if action == 2 or status == 0: 
+                if action == 3 or status == 0: 
                     profit, trade = self.close(price, positions, time, index)
                     profits.append(profit)
                     trades.loc[trade[0]] = trade
                     positions = []
                 if action == 1:  positions.append(self.open(price, time, index, 1))  
-                if action == -1: positions.append(self.open(price, time, index, -1))
+                if action == 2: positions.append(self.open(price, time, index, -1))
             else:
                 if action == 1:  positions.append(self.open(price, time, index, 1))  
-                if action == -1: positions.append(self.open(price, time, index, -1))
+                if action == 2: positions.append(self.open(price, time, index, -1))
 
             actions.append(action)
 
@@ -265,19 +258,18 @@ class Backtesting:
             X, Y = self.trades[time_fmt], self.trades[['Open', 'Close']] 
 
             for i in range(len(X)):
-                if abs(self.trades['Profit'].iloc[i]) > filt:
-                    if self.trades['Direction'].iloc[i] > 0:
-                        marker = '^'
-                    else: 
-                        marker = 'v'                
-                    if self.trades['Profit'].iloc[i] > 0:
-                        color = 'green'
-                    elif self.trades['Profit'].iloc[i] < 0:
-                        color = 'red'
-                    line, = axs[0].plot(X.iloc[i],Y.iloc[i], color=color)
-                    line.set_marker(marker)
-                    line.set_markeredgecolor('black')
-                    line.set_markerfacecolor('yellow')       
+                if self.trades['Direction'].iloc[i] == 1:
+                    marker = '^'
+                else: 
+                    marker = 'v'                
+                if self.trades['Profit'].iloc[i] > 0:
+                    color = 'green'
+                elif self.trades['Profit'].iloc[i] < 0:
+                    color = 'red'
+                line, = axs[0].plot(X.iloc[i],Y.iloc[i], color=color)
+                line.set_marker(marker)
+                line.set_markeredgecolor('black')
+                line.set_markerfacecolor('yellow')       
 
         # Daily lines for time=False
         if week_lines:
@@ -314,8 +306,8 @@ if __name__ == "__main__":
                      agent=agent,
                      fraction=(10000, 10000),
                      equity=1000,
-                     risk=0.1)
+                     risk=0.0)
     bt.reset()
     bt.run()
-    bt.plot(dates=True, week_lines=True, plot_trades=False)
-   
+    bt.plot(dates=True, week_lines=True, plot_trades=True)
+
