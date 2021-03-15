@@ -9,7 +9,7 @@ from multiprocessing import Pool, cpu_count, freeze_support
 from multiprocessing.pool import ThreadPool
 from mplfinance._utils import IntegerIndexDateTimeFormatter
 
-from tech_indicators import * 
+from lib.tech_indicators import * 
 from agent import *
 
 ####################################################################################################
