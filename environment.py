@@ -12,11 +12,15 @@ class environment():
         self.normalization = normalization
         self.observation_space = self.datagen.df.dtypes
         self.action_space = [0,1,2,3]
+        self.market = {'Spread': 1.2,
+                        }
 
 ####################################################################################    
     def step(self, action):
 
         state = self.day[self.idx:self.window_size + self.idx, 1:]
+        total_reward = 0
+        reward = 0
 
         # Terminal state 
         if self.idx < self.len-1:
@@ -24,11 +28,13 @@ class environment():
                 pass
             elif action == 3 and self.trade['Opentime'] != None:
                 self.close_position()
-            elif action == 1 and self.trade['Opentime'] == None:
+            elif action < 3 and self.trade['Opentime'] == None:
                 self.open_position(action) 
             self.idx += 1
             done = False
         else:
+            if self.trade['Opentime'] != None:
+                self.close_position()
             done = True
 
         reward = 1
@@ -37,24 +43,25 @@ class environment():
 ####################################################################################   
     def open_position(self, action):
         # 8 = Close in df. 4 = Open price in tradebook
-        direction = action < 2
-        self.trade['Opentime'] = self.day[self.idx, 0]
+        direction = action == 1
+        self.trade['Opentime'] = self.day[self.window_size + self.idx, 0]
         self.trade['Openindex'] = self.idx
-        self.trade['Open'] = self.day[self.idx, 8]
+        self.trade['Open'] = self.day[self.window_size + self.idx, 8]
         self.trade['Direction'] = (-1 + 2*direction)[0]
         # print('Opened')
 ####################################################################################    
     def close_position(self):
-        self.trade['Closetime'] = self.day[self.idx, 0]
+        self.trade['Closetime'] = self.day[self.window_size + self.idx, 0]
         self.trade['Closeindex'] = self.idx
-        self.trade['Close'] = self.day[self.idx, 8]
-        self.trade['Profit'] = (self.trade['Close'] -\
+        self.trade['Close'] = self.day[self.window_size + self.idx, 8]
+        self.trade['Profit'] = ((self.trade['Close'] -\
                                 self.trade['Open']) *\
-                                self.trade['Direction']
+                                self.trade['Direction']) - self.market['Spread']
         self.trades = self.trades.append(self.trade, ignore_index=True) 
         if self.verbose > 1:   
             print(f'Opentime: {self.trade["Opentime"]}  Closetime: {self.trade["Closetime"]}  ', 
-                    f'Open: {round(self.trade["Open"],2)}  Close: {round(self.trade["Close"],2)}  Profit: {round(self.trade["Profit"],2)}')
+                    f'Open: {round(self.trade["Open"],2)}  Close: {round(self.trade["Close"],2)} ',
+                    f'Profit: {round(self.trade["Profit"],2)}  Direction: {self.trade["Direction"]}')
         self.trade = self.trade_template.copy()
         
 ####################################################################################
@@ -99,19 +106,29 @@ class environment():
 if __name__ == "__main__":
     window_size = 100
     gen = DataGenerator(symbol="SP500_M1",
-                        fraction=[2e6, 10000],
+                        fraction=[0, 1e5],
                         window_size=window_size)
-    env = environment(gen, normalization=False)
+    env = environment(gen, normalization=False, verbose=2)
   
-    n = 10
+    n = 20
     t = time.time()
+    trades = []
     for i in range(n):
         state = env.reset()
         while True:
-            state, reward, done = env.step(action=np.random.choice([0,1,2,3], 1))
+            state, reward, done = env.step(action=np.random.choice([0,1,2,3], 1, p=[0.5, 0.1,0.1, 0.3]))
             if done:
+                trades.append(env.trades)
                 break
+    trades = pd.concat(trades)
+    long = np.array(trades['Direction'] > 0 )
+    won = np.array(trades['Profit'] > 0)
+    short = trades['Direction'] < 0
+    
     print(f'\nDays/s: {round(n/(time.time()-t), 2)}')
-    print(f'\nNumber of Trades: {len(env.trades)}\nTotal Profit: {np.sum(env.trades["Profit"])}')
+    print(f'\nNumber of Trades: {len(trades)}\nTotal Profit: {round(np.sum(trades["Profit"]),2)} €',
+          f'\nAverage Return: {round(np.mean(trades["Profit"]),2)} ({round(np.min(trades["Profit"]),2)}, {round(np.max(trades["Profit"]),2)})',
+          f'\nWon Long: {round(np.sum(np.sum([long, won], axis=0) == 2)/np.sum(long)*100,2)} %',
+          f'\nWon Short: {round(np.sum(np.sum([short, won], axis=0) == 2)/np.sum(long)*100,2)} %')
     
   
