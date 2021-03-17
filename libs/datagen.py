@@ -39,7 +39,7 @@ class DataGenerator():
         self.days = days
         self.num = len(self.days)
 
-        print(f'\nData Generator initalized! Days available: {self.num}\n')
+        print(f'\nData Generator initalized! Days available: {self.num}')
 
 
     def get_sample(self, k):

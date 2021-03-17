@@ -6,8 +6,8 @@ import time
 class Agent:
     def __init__(self, env):
         self.env = env
-        self.num_observations = self.env.observation_space_n
-        self.num_actions = self.env.action_space_n
+        self.num_observations = self.env.observation_space
+        self.num_actions = self.env.action_space
         self.num_values = 1
         self.gamma = 0.99
         self.lr_actor = 1e-3
