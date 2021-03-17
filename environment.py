@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from lib.datagen import DataGenerator
+from libs.datagen import DataGenerator
 
 class environment():
     def __init__(self, DataGen, normalization) -> None:
