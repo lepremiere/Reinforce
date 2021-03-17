@@ -16,6 +16,7 @@ class DataGenerator():
         self.df, n, k = get_indicators(self.df)
         self.price_dependent = np.concatenate([self.price_dependent,k], axis=0)
         self.df = self.df.iloc[n:,:]
+        self.df.iloc[:,1:] = self.df.iloc[:, 1:].astype(np.float32)
         self.df = self.df.reset_index(drop=True)
 
         # Adding time ints
@@ -80,5 +81,5 @@ if __name__ == "__main__":
     symbol = "SP500_M1"
     gen = DataGenerator(symbol=symbol, fraction=[int(1e6), 10000], window_size=10)
 
-    # print(f' \n\nData types: {gen.df.dtypes} \nDataFrame: \n{gen.df.tail()}')
-    print(f'Sample days: {len(gen.days)}')
+    print(f' \n\nData types: {gen.df.dtypes} \nDataFrame: \n{gen.df.iloc[0:10,0:10]}')
+    print(f'\nSample days: {len(gen.days)}')
