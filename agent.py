@@ -6,8 +6,8 @@ import time
 class Agent:
     def __init__(self, env):
         self.env = env
-        self.num_observations = self.env.observation_space_n
-        self.num_actions = self.env.action_space_n
+        self.num_observations = self.env.observation_space
+        self.num_actions = self.env.action_space
         self.num_values = 1
         self.gamma = 0.99
         self.lr_actor = 1e-3
@@ -67,13 +67,11 @@ class Agent:
 
         return total_rewards
 
-    def play(self, num_episodes, render=True):
+    def play(self, num_episodes):
         for episode in range(num_episodes):
             state = self.env.reset()
             while True:
                 state = np.reshape(state, (1, self.num_observations))
-                if render:
-                    self.env.render()
                 action = self.get_action(state)
                 state, reward, done, _ = self.env.step(action)
                 if done:
