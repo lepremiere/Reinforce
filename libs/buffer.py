@@ -8,10 +8,10 @@ class ReplayBuffer():
         self.memory = deque(maxlen=buffer_size)
         self.batch_size = batch_size 
         self.experience = namedtuple("Experience",
-                                     field_names=["state", "action", "reward", "next_state", "done"])
+                                     field_names=["state", "advantage", "value", "game"])
 
-    def add(self, state, action, reward, next_state, done):
-        e = self.experience(state, action, reward, next_state, done)
+    def add(self, state, advantage, value, game):
+        e = self.experience(state, advantage, value, game)
         self.memory.append(e)
 
     def sample(self):

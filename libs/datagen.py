@@ -20,10 +20,10 @@ class DataGenerator():
         self.df = self.df.reset_index(drop=True)
 
         # Adding time ints
-        self.df.insert(loc=1, column='Minute', value=time.dt.minute.astype(np.int8))
-        self.df.insert(loc=1, column='Hour', value=time.dt.hour.astype(np.int8))
-        self.df.insert(loc=1, column='Day', value=time.dt.dayofweek.astype(np.int8))
-        self.df.insert(loc=1, column='Month', value=time.dt.month.astype(np.int8))
+        self.df.insert(loc=1, column='Minute', value=time.dt.minute.astype(np.float16))
+        self.df.insert(loc=1, column='Hour', value=time.dt.hour.astype(np.float16))
+        self.df.insert(loc=1, column='Day', value=time.dt.dayofweek.astype(np.float16))
+        self.df.insert(loc=1, column='Month', value=time.dt.month.astype(np.float16))
 
         # Get all price dependent columns
         self.price_dependent = np.array([col in self.price_dependent for col in self.df.columns.values])
@@ -45,7 +45,6 @@ class DataGenerator():
     def get_sample(self, k):
         num = np.random.choice(len(self.days), k)
         return self.days[num[0]]
-
 
 def get_indicators(dataset):
 
@@ -81,5 +80,5 @@ if __name__ == "__main__":
     symbol = "SP500_M1"
     gen = DataGenerator(symbol=symbol, fraction=[int(1e6), 10000], window_size=10)
 
-    print(f' \n\nData types: {gen.df.dtypes} \nDataFrame: \n{gen.df.iloc[0:10,0:10]}')
+    print(f' \n\nData types: {gen.df.dtypes} \nDataFrame: \n{gen.df.iloc[0,:]}')
     print(f'\nSample days: {len(gen.days)}')
