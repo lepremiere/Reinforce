@@ -62,9 +62,8 @@ class environment():
 
         self.idx += 1
         next_state = np.asarray(self.day[self.idx:self.window_size + self.idx, 1:], dtype=object).astype(np.float32)
-        game = np.array([self.tracker['Current_Profit'].iloc[self.idx]])
 
-        return next_state, game, reward, done
+        return next_state, reward, done
 ####################################################################################   
     def open_position(self, action):
         # 8 = Close in df. 4 = Open price in tradebook
@@ -125,7 +124,7 @@ class environment():
         self.day = self.day.to_numpy()
         state = np.asarray(self.day[self.idx:self.idx + self.window_size, 1:], dtype=object).astype(np.float32)     
 
-        return state, np.array([0])
+        return state
 ####################################################################################
 
 if __name__ == "__main__":

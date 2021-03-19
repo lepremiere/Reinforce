@@ -36,15 +36,15 @@ class NN(Model):
         self.critic.compile(loss="mse", optimizer=Adam(lr=self.lr_critic))        
     
     # Actor Functions
-    def train_actor(self, states, game, advantages):
+    def train_actor(self, states, advantages):
         self.actor.fit(states, advantages, verbose=0, epochs=1)
 
-    def predict_actor(self, game, states):
+    def predict_actor(self, states):
         return self.actor(states)
 
     # Critic Functions
-    def train_critic(self, states, game, values):
+    def train_critic(self, states, values):
         self.critic.fit(states, values, verbose=0, epochs=1)
 
-    def predict_critic(self, states, game):
+    def predict_critic(self, states):
         return self.critic(states)

@@ -18,7 +18,7 @@ except:
   # Invalid device or cannot modify virtual devices once initialized.
   pass
 
-batch_size = 10000
+batch_size = 128
 num_episodes = 1000
 window_size = 100
 
@@ -26,7 +26,7 @@ while True:
     gen = DataGenerator(symbol="SP500_M1",
                         fraction=[1e6, 1e6],
                         window_size=window_size)
-    buffer = ReplayBuffer(buffer_size=int(1e6), batch_size=batch_size)
+    buffer = ReplayBuffer(buffer_size=int(1e4), batch_size=batch_size)
     env = environment(DataGen=gen, normalization=True, verbose=2)
     agent = Agent(env)
 
@@ -39,17 +39,17 @@ while True:
     profit = []
     for episode in range(num_episodes):
         total_reward = 0.0
-        state, game = env.reset()
+        state = env.reset()
         dim = np.shape(env.day)[1]-1   
         state = np.reshape(np.array(state), (1, window_size, dim))
 
         while True:
-            action = agent.get_action(state, game)
-            next_state, game, reward, done = env.step(action)
+            action = agent.get_action(state)
+            next_state, reward, done = env.step(action)
             next_state = np.reshape(next_state, (1, window_size, dim))
 
-            advantage, value = agent.get_values(state, game, action, reward, next_state, done)
-            buffer.add(state, advantage, value, game)
+            advantage, value = agent.get_values(state, action, reward, next_state, done)
+            buffer.add(state, advantage, value)
 
             total_reward += reward
             state = next_state
@@ -75,9 +75,8 @@ while True:
             states = np.array([sample.state[0] for sample in samples])
             advantages = np.array([sample.advantage[0] for sample in samples])
             values = np.array([sample.value[0] for sample in samples])
-            games = np.array([sample.game[0] for sample in samples])
 
-            agent.update_policy(states, games, advantages, values)
+            agent.update_policy(states, advantages, values)
         
     trades = pd.concat(trades)
     long = np.array(trades['Direction'] > 0 )
