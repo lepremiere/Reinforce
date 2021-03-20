@@ -18,7 +18,7 @@ except:
   # Invalid device or cannot modify virtual devices once initialized.
   pass
 
-batch_size = 128
+batch_size = 512
 num_episodes = 1000
 window_size = 100
 
@@ -26,30 +26,32 @@ while True:
     gen = DataGenerator(symbol="SP500_M1",
                         fraction=[1e6, 1e6],
                         window_size=window_size)
-    buffer = ReplayBuffer(buffer_size=int(1e4), batch_size=batch_size)
-    env = environment(DataGen=gen, normalization=True, verbose=2)
+    buffer = ReplayBuffer(buffer_size=int(1e5), batch_size=batch_size)
+    env = environment(DataGen=gen, normalization=False, verbose=4)
     agent = Agent(env)
 
     total_rewards = []
     trades = []
     t = time.time()
     plt.ion()
-    fig = plt.figure()
-    ax = fig.add_subplot()
+    f, (ax1,ax2) = plt.subplots(nrows=2, ncols=1, sharex=True)
+    ax1.set_title('Profit')
+    ax2.set_title('Reward')
     profit = []
     for episode in range(num_episodes):
         total_reward = 0.0
         state = env.reset()
         dim = np.shape(env.day)[1]-1   
-        state = np.reshape(np.array(state), (1, window_size, dim))
+        state[0] = np.reshape(np.array(state[0]), (1, window_size, dim))
 
         while True:
             action = agent.get_action(state)
-            next_state, reward, done = env.step(action)
-            next_state = np.reshape(next_state, (1, window_size, dim))
+            next_state, reward, done = env.step(action, agent.epsilon)
+  
+            next_state[0] = np.reshape(next_state[0], (1, window_size, dim))
 
             advantage, value = agent.get_values(state, action, reward, next_state, done)
-            buffer.add(state, advantage, value)
+            buffer.add(state[0], state[1], advantage, value, reward)
 
             total_reward += reward
             state = next_state
@@ -59,25 +61,31 @@ while True:
                 trades.append(env.trades)
                 total_rewards.append(total_reward)
                 mean_total_rewards = np.mean(total_rewards[-min(len(total_rewards), 10):])
-                ax.clear()
-                ax.plot(total_rewards)
-                ax.plot(profit)
-                fig.canvas.draw()
-                fig.canvas.flush_events()
+
+                ax1.clear()
+                ax1.plot(total_rewards, color='g')
+                ax2.clear()
+                ax2.plot(profit, color='b')
+                ax1.axhline(0, color='k')
+                ax2.axhline(0, color='k')
+                plt.pause(0.05)
 
                 print("Episode: ", episode+1,
                     " Total Reward: ", total_reward,
                     " Mean: ", mean_total_rewards,
                     " Time: ", round(time.time()-t,2), " s")
                 break
+
         if buffer.__len__() > batch_size:
+          for _ in range(10):
             samples = buffer.sample()
             states = np.array([sample.state[0] for sample in samples])
+            games = np.array([sample.game[0] for sample in samples])
             advantages = np.array([sample.advantage[0] for sample in samples])
             values = np.array([sample.value[0] for sample in samples])
+            agent.update_policy(states, games, advantages, values)    
 
-            agent.update_policy(states, advantages, values)
-        
+    plt.show()   
     trades = pd.concat(trades)
     long = np.array(trades['Direction'] > 0 )
     won = np.array(trades['Profit'] > 0)

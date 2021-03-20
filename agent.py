@@ -9,12 +9,15 @@ class Agent:
         self.num_observations = tuple(self.env.observation_space_n)
         self.num_actions = self.env.action_space_n
         self.num_values = 1
+        self.game_size =  (self.env.window_size, len(self.env.tracker_list))
+        print(self.game_size)
         self.gamma = 0.99
-        self.epsilon = 0.001
+        self.epsilon = 0.99
+        self.epsilon_decay = 0.999
         self.epsilon_limit = 0.001
         self.lr_actor = 1e-3
         self.lr_critic = 5e-3
-        self.model = NN(self.num_observations, self.num_actions, self.num_values, self.lr_actor, self.lr_critic)
+        self.model = NN(self.num_observations, self.num_actions, self.num_values, self.game_size, self.lr_actor, self.lr_critic)
 
     def get_action(self, state):
         if np.random.rand(1) > self.epsilon:
@@ -23,7 +26,7 @@ class Agent:
         else:
             action = np.random.choice(self.num_actions)
             if self.epsilon > self.epsilon_limit:
-                self.epsilon *= 0.9          
+                self.epsilon *= self.epsilon_decay          
         return action
 
     def get_values(self, state, action, reward, next_state, done):
@@ -42,6 +45,6 @@ class Agent:
 
         return advantages, values
 
-    def update_policy(self, states, advantages, values):
-        self.model.train_actor(states, advantages)
-        self.model.train_critic(states, values)
+    def update_policy(self, states, games, advantages, values):
+        self.model.train_actor(states, games, advantages)
+        self.model.train_critic(states, games, values)
