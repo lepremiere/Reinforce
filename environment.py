@@ -32,10 +32,8 @@ class environment():
         # Normalize to Open of first data
         if self.normalization:
             self.day.loc[:,self.datagen.price_dependent] = self.day.loc[:,self.datagen.price_dependent] -\
-                                                        self.day.Open.iloc[self.window_size]
+                                                        self.day.open.iloc[self.window_size]
         # Params
-        self.action_space_n = 4
-        self.observation_space_n = self.day.shape[1]
         self.len = len(self.day) - self.window_size
         self.idx = 0 
 
@@ -50,7 +48,7 @@ class environment():
         self.trade = self.trade_template.copy()
         
         if self.verbose > 0:
-            print(f'New Day started: {self.day.Date.iloc[self.window_size]}')
+            print(f'New Day started: {self.day.date.iloc[self.window_size]}')
             
         # Beginning state
         self.day = self.day.to_numpy()
@@ -71,8 +69,9 @@ class environment():
             position = 0
             if self.trade['Opentime'] == None:
                 if action == 0 or action == 3:
+                    reward = -5
                     if action == 3:
-                        reward = -1
+                        reward = -10
                 else:
                     self.open_position(action) 
                     position = self.trade['Direction']
@@ -83,7 +82,7 @@ class environment():
                 current_profit = (self.day[self.idx + self.window_size, 7] - self.trade['Open']) * position
                 if action < 3:
                     if action != 0:
-                        reward = -1
+                        reward = -10
                 else:
                     self.close_position() 
                     profit = self.trade['Profit']
@@ -102,8 +101,7 @@ class environment():
         else:
             if self.trade['Opentime'] != None:
                 self.close_position()
-            done = True
-            
+            done = True        
         
         self.idx += 1
         next_state = [np.asarray(self.day[self.idx:self.window_size + self.idx, 1:], dtype=object).astype(np.float32),\
@@ -136,10 +134,9 @@ class environment():
                 outcome = 'Loss'
             print(f'Opentime: {self.trade["Opentime"]}  Duration: {self.trade["Closeindex"]-self.trade["Openindex"]: >3} m  ', 
                     f'Open: {np.round(self.trade["Open"],2): >8}  Close: {np.round(self.trade["Close"],2): >8} ',
-                    f'Profit: {np.round(self.trade["Profit"],2)[0]: >5}  Direction: {self.trade["Direction"][0]: >3} Status: {outcome: >3}')
+                    f'Profit: {np.round(self.trade["Profit"],2): >5}  Direction: {self.trade["Direction"]: >3} Status: {outcome: >3}')
         
 ####################################################################################
-    
 
 if __name__ == "__main__":
     import time

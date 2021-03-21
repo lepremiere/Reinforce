@@ -1,7 +1,6 @@
 import numpy as np 
 from tensorflow.keras.backend import get_value
 from model import NN
-import time
 
 class Agent:
     def __init__(self, env):
@@ -10,10 +9,9 @@ class Agent:
         self.num_actions = self.env.action_space_n
         self.num_values = 1
         self.game_size =  (self.env.window_size, len(self.env.tracker_list))
-        print(self.game_size)
         self.gamma = 0.99
         self.epsilon = 0.99
-        self.epsilon_decay = 0.999
+        self.epsilon_decay = 0.9999
         self.epsilon_limit = 0.001
         self.lr_actor = 1e-3
         self.lr_critic = 5e-3
@@ -24,7 +22,7 @@ class Agent:
             policy = self.model.actor(inputs=state, training=False)
             action = np.random.choice(self.num_actions, p=get_value(policy[0]))
         else:
-            action = np.random.choice(self.num_actions)
+            action = np.random.choice(self.num_actions, p=[0.7,0.1,0.1,0.1])
             if self.epsilon > self.epsilon_limit:
                 self.epsilon *= self.epsilon_decay          
         return action
