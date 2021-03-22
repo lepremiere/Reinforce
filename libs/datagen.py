@@ -75,6 +75,6 @@ if __name__ == "__main__":
     null = gen.df.isnull().sum()
     print(gen.df.isnull().sum().sum())
 
-    with open('random.txt', 'w') as f:
+    with open('./storage/random.txt', 'w') as f:
         for i in range(len(null)):
             f.write(f'{null[i]}\n')

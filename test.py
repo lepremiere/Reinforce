@@ -62,6 +62,7 @@ if __name__ == "__main__":
                     ax1.axhline(0, color='k')
                     ax2.axhline(0, color='k')
                     plt.pause(0.05)
+                    plt.savefig('./storage/performance.png')
 
                     print("Episode: ", episode+1,
                         " Total Reward: ", total_reward,

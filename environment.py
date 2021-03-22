@@ -86,8 +86,7 @@ class environment():
                 position = self.trade['Direction']
                 current_profit = (self.day[self.idx + self.window_size, 7] - self.trade['Open']) * position
                 some = current_profit - (self.day[self.idx + self.window_size-1, 7] - self.trade['Open']) * position
-                if current_profit < 0:
-                    some = -1
+
                 if action < 3:
                     if action != 0:
                         reward = -10
@@ -96,11 +95,10 @@ class environment():
                     profit = self.trade['Profit']
                     reward = profit
                     self.trade = self.trade_template.copy()
-
             
             done = False
             total_profit = self.tracker['Total_Profit'].iloc[self.idx-1] + profit
-            reward += some*10 + total_profit
+            reward += some*10 
             self.tracker.iloc[self.idx, :] = [0, action, position, current_profit, total_profit, reward]
             if self.verbose == 4:
                 print(f'Close: {round(self.day[self.idx + self.window_size, 7],2): >7} Action: {action: >2} Position:{position: >5}',
