@@ -43,20 +43,23 @@ class NN(Model):
                          activation='softmax',
                          name='Dense_Actor_1')(actor_in)
         self.actor = Model(inputs=[state, game], outputs=actor_out)
-        self.actor.summary()
         self.actor.compile(loss="categorical_crossentropy", optimizer=Adam(lr=self.lr_actor))
-        plot_model(self.actor, to_file='./1_model/Actor.png',
-                    show_shapes=True, show_dtype=True,
-                    show_layer_names=True) 
+
 
         critic_x = Dense(64, activation='relu', name='Dense_cr')(x)
         critic_out = Dense(self.num_values, activation='linear')(critic_x)
         self.critic = Model(inputs=[state, game], outputs=critic_out)
-        self.critic.summary()
-        self.critic.compile(loss="mse", optimizer=Adam(lr=self.lr_critic))       
+        self.critic.compile(loss="mse", optimizer=Adam(lr=self.lr_critic)) 
+
+        plot_model(self.actor, to_file='./1_model/Actor.png',
+            show_shapes=True, show_dtype=True,
+            show_layer_names=True) 
+        self.actor.summary()
+
         plot_model(self.critic, to_file='./1_model/Critic.png',
                     show_shapes=True, show_dtype=True,
                     show_layer_names=True) 
+        self.critic.summary()
 
     # Actor Functions
     def train_actor(self, states, games, advantages):

@@ -1,6 +1,10 @@
+import sys
+import logging
 import numpy as np
 import pandas as pd
 from multiprocessing import process
+
+from tensorflow.python.keras.backend import dtype
 from libs.datagen import DataGenerator
 
 class Environment():
@@ -50,11 +54,12 @@ class Environment():
         
         if self.verbose > 0:
             print(f'New Day started: {self.day.date.iloc[self.window_size]}')
+            logging.info('aaaa')
             
         # Starting state
         self.day = self.day.to_numpy()
         state = [np.asarray(self.day[self.idx:self.window_size + self.idx, 1:], dtype=object).astype(np.float32),\
-                 np.asarray([self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values]).astype(np.float32)]
+                 np.asarray([self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values], dtype=object).astype(np.float32)]
 
         if self.verbose == 3:
                 print(state[0:10, 0:10])
@@ -113,7 +118,7 @@ class Environment():
         
         self.idx += 1
         next_state = [np.asarray(self.day[self.idx:self.window_size + self.idx, 1:], dtype=object).astype(np.float32),\
-                     np.asarray([self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values]).astype(np.float32)]
+                     np.asarray([self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values], dtype=object).astype(np.float32)]
 
         return next_state, reward, done
 
@@ -149,32 +154,21 @@ class Environment():
 ####################################################################################
 
 if __name__ == "__main__":
-    import time
+
     window_size = 100
     gen = DataGenerator(symbol="SP500_M1",
                         fraction=[0, 1e4],
                         window_size=window_size)
-    env = environment(gen, normalization=False, verbose=2)
+    env = Environment(gen, normalization=False, verbose=1)
   
-    n = 1
-    t = time.time()
-    trades = []
+    n = 3
+
     for i in range(n):
         state = env.reset()
         while True:
-            state, reward, done = env.step(action=np.random.choice([0,1,2,3], 1, p=[0.5, 0.1,0.1, 0.3]))
+            state, reward, done = env.step(action=np.random.choice([0,1,2,3], 1, p=[0.5, 0.1,0.1, 0.3]), epsilon=0)
             if done:
-                trades.append(env.trades)
                 break
-    trades = pd.concat(trades)
-    long = np.array(trades['Direction'] > 0 )
-    won = np.array(trades['Profit'] > 0)
-    short = trades['Direction'] < 0
-    print(env.tracker.iloc[0:100,:])
-    print(f'\nDays/s: {np.round(n/(time.time()-t), 2)}')
-    print(f'\nNumber of Trades: {len(trades)}\nTotal Profit: {np.round(np.sum(trades["Profit"]),2)} €',
-          f'\nAverage Return: {np.round(np.mean(trades["Profit"]),2)} ({np.round(np.min(trades["Profit"]),2)}, {np.round(np.max(trades["Profit"]),2)})',
-          f'\nWon Long: {np.round(np.sum(np.sum([long, won], axis=0) == 2)/np.sum(long)*100,2)} %',
-          f'\nWon Short: {np.round(np.sum(np.sum([short, won], axis=0) == 2)/np.sum(long)*100,2)} %')
+
     
   
