@@ -3,9 +3,9 @@ import pandas as pd
 import pandas_ta as ta 
 
 class DataGenerator():
-    def __init__(self, symbol: str, fraction=[0,0], window_size=100, test_split=0.2, sample_mode='random') -> None:
+    def __init__(self, symbol: str, fraction, settings) -> None:
         self.sample_mode = 'random'
-        self.window_size = window_size
+        self.window_size = settings['window_size']
         self.df = pd.read_csv("D:/Data/" + symbol + ".csv",
                                 header=0,
                                 skiprows=range(1,int(fraction[0])),
@@ -61,6 +61,7 @@ class DataGenerator():
         return df, n, k
             
     def get_sample(self, k):
+        # CS65849+816315646
         if self.sample_mode == 'random':
             num = np.random.choice(len(self.days), k)[0]
         return self.days[num]

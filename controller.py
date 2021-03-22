@@ -22,31 +22,24 @@ class Controller:
 
 if __name__ == "__main__":
     t2 = time.time()
-    BATCH_SIZE = 64
-    NUM_EPISODES = 5
-    WINDOW_SIZE = 5
-    NORMALIZATION = False
-    VERBOSE = 4
 
-    settings = {'batch_size': BATCH_SIZE,
-                'num_episodes': NUM_EPISODES,
-                'window_size': WINDOW_SIZE,
-                'normalization': NORMALIZATION,
-                'verbose': VERBOSE}
+    settings = {'batch_size': 64,
+                'num_episodes': 1,
+                'window_size': 5,
+                'normalization': False,
+                'buffer_size': int(1e4),
+                'verbose': 1}
 
-    gen = DataGenerator(symbol="SP500_M1",
-                        fraction=[1, 1e5],
-                        window_size=WINDOW_SIZE)
-    buffer = ReplayBuffer(buffer_size=int(1e5), batch_size=BATCH_SIZE)
-    env = Environment(DataGen=gen,
-                      normalization=NORMALIZATION,
-                      verbose=VERBOSE)
+    gen = DataGenerator(symbol="SP500_M1", fraction=[1, 1e3], settings=settings)
+    buffer = ReplayBuffer(settings=settings)
+    env = Environment(DataGen=gen, settings=settings)
     agent = Agent(env)
     
     agent_in_q = mp.JoinableQueue()
-    num_workers = 6
+    num_workers = 1
     workers = [Worker(name=str(i),
                       gen=gen,
+                      buffer=buffer,
                       task_queue=agent_in_q,
                       settings=settings) \
                 for i in range(num_workers)]
@@ -57,7 +50,7 @@ if __name__ == "__main__":
         w.daemon = True
         w.start() 
 
-    for i in range(50):
+    for i in range(1):
         agent_in_q.put(i)
 
     for i in range(num_workers):

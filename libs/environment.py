@@ -8,16 +8,17 @@ from tensorflow.python.keras.backend import dtype
 from libs.datagen import DataGenerator
 
 class Environment():
-    def __init__(self, DataGen, normalization=False, verbose=0) -> None:
-        # super(environment, self).__init__()
-        self.verbose = verbose
+
+    def __init__(self, DataGen, settings) -> None:
+        self.verbose = settings['verbose']
+        self.window_size = settings['window_size']
+        self.normalization = settings['normalization']
         self.datagen = DataGen
-        self.window_size = self.datagen.window_size
-        self.normalization = normalization
         self.observation_space = self.datagen.df.dtypes
         self.observation_space_n = [self.window_size, np.shape(self.datagen.days[0])[1]-1] # -1 bc date is not passed
         self.action_space = [0,1,2,3]
         self.action_space_n = len(self.action_space)
+
         self.market = {'Spread': 1.2,
                        'Risk': 0.1,
                        'Slippage': 0.5,
