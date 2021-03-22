@@ -17,7 +17,7 @@ class ReplayBuffer():
 
     def sample(self):
         self.memory = sorted(self.memory, key=attrgetter('reward'), reverse=True)
-        return random.sample(self.memory[0:1000], k=self.batch_size)
+        return random.sample(self.memory[0:10000], k=self.batch_size)
 
     def __len__(self):
         return len(self.memory)

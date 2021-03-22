@@ -12,12 +12,12 @@ from agent import Agent
 
 if __name__ == "__main__":
     batch_size = 512
-    num_episodes = 1000
-    window_size = 100
+    num_episodes = 50000
+    window_size = 200
 
     while True:
-        gen = DataGenerator(symbol="SP500_M1_PANDAS_TA",
-                            fraction=[1, 1e6],
+        gen = DataGenerator(symbol="SP500_M1_TA",
+                            fraction=[1e5, 1e7],
                             window_size=window_size)
         buffer = ReplayBuffer(buffer_size=int(1e5), batch_size=batch_size)
         env = environment(DataGen=gen, normalization=False, verbose=4)
@@ -70,7 +70,7 @@ if __name__ == "__main__":
                     break
 
             if buffer.__len__() > batch_size:
-                for _ in range(10):
+                for _ in range(5):
                     samples = buffer.sample()
                     states = np.array([sample.state[0] for sample in samples])
                     games = np.array([sample.game[0] for sample in samples])

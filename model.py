@@ -25,51 +25,38 @@ class NN(Model):
         state = Input(shape=self.num_observations, name='Input')
         game = Input(shape=self.game_size, name='Input_game')
 
-        x = Conv1D(64, 64, padding='same')(state)
+        x = Dense(128, kernel_regularizer=l2(1e3))(state)
         x = Activation('relu')(x)
-        x = MaxPool1D(pool_size=32, strides=3, padding='same')(x)
-
-        x = Conv1D(128, 32, padding='same')(x)
+        x = Dense(32, kernel_regularizer=l2(1e3))(state)
         x = Activation('relu')(x)
-        x = MaxPool1D(pool_size=16, strides=3, padding='same')(x)
-
         x = Flatten()(x)
-        x = Dense(64, kernel_regularizer=l2(1e-6))(x)
-        x = Activation('relu')(x)
 
-        w = Conv1D(64, 64, padding='same')(game)
+        w = Dense(128, kernel_regularizer=l2(1e3))(game)
+        w = Dense(32, kernel_regularizer=l2(1e3))(w)
         w = Activation('relu')(w)
-        w = MaxPool1D(pool_size=32, strides=3, padding='same')(w)
-
-        w = Conv1D(128, 32, padding='same')(w)
-        w = Activation('relu')(w)
-        w = MaxPool1D(pool_size=16, strides=3, padding='same')(w)
-
         w = Flatten()(w)
-        w = Dense(64)(w)
-        w = Activation('relu')(w)
 
         x = Concatenate()([x, w])
 
+        actor_in = Dense(64, activation='relu')(x)
         actor_out = Dense(self.num_actions,
                          activation='softmax',
-                         name='Dense_Actor_1')(x)
+                         name='Dense_Actor_1')(actor_in)
         self.actor = Model(inputs=[state, game], outputs=actor_out)
         self.actor.summary()
         self.actor.compile(loss="categorical_crossentropy", optimizer=Adam(lr=self.lr_actor))
-        # plot_model(self.actor, to_file='Actor.png',
-        #             show_shapes=True, show_dtype=True,
-        #             show_layer_names=True) 
+        plot_model(self.actor, to_file='./model/Actor.png',
+                    show_shapes=True, show_dtype=True,
+                    show_layer_names=True) 
 
-        critic_x = Dense(64, name='Dense_cr')(x)
-        critic_x = Dense(self.num_values)(critic_x)
-        critic_out = Activation("linear")(critic_x)
+        critic_x = Dense(64, activation='relu', name='Dense_cr')(x)
+        critic_out = Dense(self.num_values, activation='linear')(critic_x)
         self.critic = Model(inputs=[state, game], outputs=critic_out)
         self.critic.summary()
         self.critic.compile(loss="mse", optimizer=Adam(lr=self.lr_critic))       
-        # plot_model(self.critic, to_file='Critic.png',
-        #             show_shapes=True, show_dtype=True,
-        #             show_layer_names=True) 
+        plot_model(self.critic, to_file='./model/Critic.png',
+                    show_shapes=True, show_dtype=True,
+                    show_layer_names=True) 
 
     # Actor Functions
     def train_actor(self, states, games, advantages):

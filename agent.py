@@ -11,10 +11,10 @@ class Agent:
         self.game_size =  (self.env.window_size, len(self.env.tracker_list))
         self.gamma = 0.99
         self.epsilon = 0.99
-        self.epsilon_decay = 0.9999
+        self.epsilon_decay = 0.999
         self.epsilon_limit = 0.001
-        self.lr_actor = 1e-3
-        self.lr_critic = 5e-3
+        self.lr_actor = 1e-5
+        self.lr_critic = 5e-5
         self.model = NN(self.num_observations, self.num_actions, self.num_values, self.game_size, self.lr_actor, self.lr_critic)
 
     def get_action(self, state):

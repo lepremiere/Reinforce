@@ -50,7 +50,7 @@ class environment():
         if self.verbose > 0:
             print(f'New Day started: {self.day.date.iloc[self.window_size]}')
             
-        # Beginning state
+        # Starting state
         self.day = self.day.to_numpy()
         state = [np.asarray(self.day[self.idx:self.window_size + self.idx, 1:], dtype=object).astype(np.float32),\
                  np.asarray([self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values]).astype(np.float32)]
@@ -61,12 +61,16 @@ class environment():
 ####################################################################################    
     def step(self, action, epsilon):
         
+        # COMMENT!
         reward = 0
         # Terminal state 
         if self.idx < self.len-1:
+
             profit = 0
             current_profit = 0
             position = 0
+            some = 0
+
             if self.trade['Opentime'] == None:
                 if action == 0 or action == 3:
                     reward = -5
@@ -76,26 +80,31 @@ class environment():
                     self.open_position(action) 
                     position = self.trade['Direction']
                     current_profit = (self.day[self.idx + self.window_size, 7] - self.trade['Open']) * position
+                    reward = -5
         
             else:
                 position = self.trade['Direction']
                 current_profit = (self.day[self.idx + self.window_size, 7] - self.trade['Open']) * position
+                some = current_profit - (self.day[self.idx + self.window_size-1, 7] - self.trade['Open']) * position
+                if current_profit < 0:
+                    some = -1
                 if action < 3:
                     if action != 0:
                         reward = -10
                 else:
                     self.close_position() 
                     profit = self.trade['Profit']
-                    reward = profit*100
+                    reward = profit
                     self.trade = self.trade_template.copy()
 
-            reward += current_profit
+            
             done = False
             total_profit = self.tracker['Total_Profit'].iloc[self.idx-1] + profit
+            reward += some*10 + total_profit
             self.tracker.iloc[self.idx, :] = [0, action, position, current_profit, total_profit, reward]
             if self.verbose == 4:
                 print(f'Close: {round(self.day[self.idx + self.window_size, 7],2): >7} Action: {action: >2} Position:{position: >5}',
-                      f' Current Profit: {round(current_profit,2): >7} Total Profit: {round(total_profit,2): >7} Reward: {round(reward,2): >5}',
+                      f' Current Profit: {round(current_profit,2): >7} Total Profit: {round(total_profit,2): >7} Reward: {round(reward,2): >8}',
                       f' Epsilon: {round(epsilon,3)}') 
         
         else:
@@ -108,15 +117,16 @@ class environment():
                      np.asarray([self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values]).astype(np.float32)]
 
         return next_state, reward, done
+
 ####################################################################################   
     def open_position(self, action):
-        # 8 = Close in df. 4 = Open price in tradebook
+        # 7 = Close in df. 4 = Open price in tradebook
         direction = action == 1
         self.trade['Opentime'] = self.day[self.window_size + self.idx, 0]
         self.trade['Openindex'] = self.idx
         self.trade['Open'] = self.day[self.window_size + self.idx, 7] + (self.market['Spread'] * (-1 + 2*direction))
         self.trade['Direction'] = (-1 + 2*direction)
-        # print('Opened')
+
 ####################################################################################    
     def close_position(self):
         self.trade['Closetime'] = self.day[self.window_size + self.idx, 0]
@@ -126,6 +136,7 @@ class environment():
                                 self.trade['Open']) *\
                                 self.trade['Direction']) 
         self.trades = self.trades.append(self.trade, ignore_index=True) 
+
         if self.verbose == 2:   
             status = self.trade["Profit"] > 0
             if status:
@@ -142,7 +153,7 @@ if __name__ == "__main__":
     import time
     window_size = 100
     gen = DataGenerator(symbol="SP500_M1",
-                        fraction=[0, 1e5],
+                        fraction=[0, 1e4],
                         window_size=window_size)
     env = environment(gen, normalization=False, verbose=2)
   
