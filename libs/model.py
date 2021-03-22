@@ -45,7 +45,7 @@ class NN(Model):
         self.actor = Model(inputs=[state, game], outputs=actor_out)
         self.actor.summary()
         self.actor.compile(loss="categorical_crossentropy", optimizer=Adam(lr=self.lr_actor))
-        plot_model(self.actor, to_file='./model/Actor.png',
+        plot_model(self.actor, to_file='./1_model/Actor.png',
                     show_shapes=True, show_dtype=True,
                     show_layer_names=True) 
 
@@ -54,7 +54,7 @@ class NN(Model):
         self.critic = Model(inputs=[state, game], outputs=critic_out)
         self.critic.summary()
         self.critic.compile(loss="mse", optimizer=Adam(lr=self.lr_critic))       
-        plot_model(self.critic, to_file='./model/Critic.png',
+        plot_model(self.critic, to_file='./1_model/Critic.png',
                     show_shapes=True, show_dtype=True,
                     show_layer_names=True) 
 

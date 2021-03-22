@@ -5,19 +5,19 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import time
 
-from environment import environment
+from libs.environment import environment
 from libs.datagen import DataGenerator
 from libs.buffer import ReplayBuffer
-from agent import Agent
+from libs.agent import Agent
 
 if __name__ == "__main__":
-    batch_size = 512
-    num_episodes = 50000
-    window_size = 200
+    batch_size = 64
+    num_episodes = 5
+    window_size = 5
 
     while True:
-        gen = DataGenerator(symbol="SP500_M1_TA",
-                            fraction=[1e5, 1e7],
+        gen = DataGenerator(symbol="SP500_M1",
+                            fraction=[1, 1e4],
                             window_size=window_size)
         buffer = ReplayBuffer(buffer_size=int(1e5), batch_size=batch_size)
         env = environment(DataGen=gen, normalization=False, verbose=4)
@@ -40,11 +40,10 @@ if __name__ == "__main__":
             while True:
                 action = agent.get_action(state)
                 next_state, reward, done = env.step(action, agent.epsilon)
-    
                 next_state[0] = np.reshape(next_state[0], (1, window_size, dim))
 
                 advantage, value = agent.get_values(state, action, reward, next_state, done)
-                buffer.add(state[0], state[1], advantage, value, reward)
+                buffer.add(state, advantage, value, [reward])
 
                 total_reward += reward
                 state = next_state
@@ -72,12 +71,9 @@ if __name__ == "__main__":
 
             if buffer.__len__() > batch_size:
                 for _ in range(5):
-                    samples = buffer.sample()
-                    states = np.array([sample.state[0] for sample in samples])
-                    games = np.array([sample.game[0] for sample in samples])
-                    advantages = np.array([sample.advantage[0] for sample in samples])
-                    values = np.array([sample.value[0] for sample in samples])
-                    agent.update_policy(states, games, advantages, values)    
+                    samples = buffer.sample(skewed=True)
+                    print(np.shape(samples), samples[0])
+   
 
         plt.show()   
         # trades = pd.concat(trades)

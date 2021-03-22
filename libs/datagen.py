@@ -10,7 +10,8 @@ class DataGenerator():
                                 header=0,
                                 skiprows=range(1,int(fraction[0])),
                                 nrows=fraction[1])
-        print(self.df.head())
+        if self.df.columns[0] == 'Date':
+            self.df.columns = map(str.lower, self.df.columns)
         time = pd.to_datetime(self.df.date)
         self.df.date = time
         self.price_dependent = ['open', 'high', 'low', 'close']
@@ -66,8 +67,8 @@ class DataGenerator():
 
 if __name__ == "__main__":
 
-    symbol = "SP500_M1_TA"
-    gen = DataGenerator(symbol=symbol, fraction=[int(1), 1e6], window_size=10)
+    symbol = "SP500_M1"
+    gen = DataGenerator(symbol=symbol, fraction=[int(1), 1e4], window_size=10)
 
     print(f' \n\nData types: {gen.df.dtypes} \nDataFrame: \n{gen.df.iloc[0,:]}')
     print(f'\nSample days: {len(gen.days)}')

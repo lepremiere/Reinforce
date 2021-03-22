@@ -3,7 +3,7 @@ import pandas as pd
 from multiprocessing import process
 from libs.datagen import DataGenerator
 
-class environment():
+class Environment():
     def __init__(self, DataGen, normalization=False, verbose=0) -> None:
         # super(environment, self).__init__()
         self.verbose = verbose
@@ -28,6 +28,7 @@ class environment():
 ####################################################################################
     def reset(self):
         self.day = self.datagen.get_sample(k=1)
+        self.len_day = len(self.day) -self.window_size
 
         # Normalize to Open of first data
         if self.normalization:
