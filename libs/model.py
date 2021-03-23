@@ -13,7 +13,7 @@ except:
   pass
 
 class NN(Model):
-    def __init__(self, num_observations, num_actions, num_values, game_size, lr_actor, lr_critic):
+    def __init__(self, num_observations, num_actions, num_values, game_size, lr_actor, lr_critic, settings):
         super(NN, self).__init__()
         self.num_observations = num_observations
         self.num_actions = num_actions
@@ -21,6 +21,7 @@ class NN(Model):
         self.game_size = game_size
         self.lr_actor = lr_actor
         self.lr_critic = lr_critic
+        self.verbose = settings['verbose']
 
         state = Input(shape=self.num_observations, name='Input')
         game = Input(shape=self.game_size, name='Input_game')
@@ -51,15 +52,17 @@ class NN(Model):
         self.critic = Model(inputs=[state, game], outputs=critic_out)
         self.critic.compile(loss="mse", optimizer=Adam(lr=self.lr_critic)) 
 
-        plot_model(self.actor, to_file='./1_model/Actor.png',
-            show_shapes=True, show_dtype=True,
-            show_layer_names=True) 
-        self.actor.summary()
-
-        plot_model(self.critic, to_file='./1_model/Critic.png',
-                    show_shapes=True, show_dtype=True,
-                    show_layer_names=True) 
-        self.critic.summary()
+        if self.verbose > 0:
+            plot_model(self.actor, to_file='./1_model/Actor.png',
+                show_shapes=True, show_dtype=True,
+                show_layer_names=True)
+            plot_model(self.critic, to_file='./1_model/Critic.png',
+                show_shapes=True, show_dtype=True,
+                show_layer_names=True) 
+            if self.verbose > 1:
+                self.actor.summary()
+                self.critic.summary()
+      
 
     # Actor Functions
     def train_actor(self, states, games, advantages):

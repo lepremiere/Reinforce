@@ -60,10 +60,9 @@ class Environment():
         # Starting state
         self.day = self.day.to_numpy()
         state = [np.asarray(self.day[self.idx:self.window_size + self.idx, 1:], dtype=object).astype(np.float32),\
-                 np.asarray([self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values], dtype=object).astype(np.float32)]
+                 np.asarray(self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values, dtype=object).astype(np.float32)]
+        
 
-        if self.verbose == 3:
-                print(state[0:10, 0:10])
         return state
 ####################################################################################    
     def step(self, action, epsilon):
@@ -119,7 +118,7 @@ class Environment():
         
         self.idx += 1
         next_state = [np.asarray(self.day[self.idx:self.window_size + self.idx, 1:], dtype=object).astype(np.float32),\
-                     np.asarray([self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values], dtype=object).astype(np.float32)]
+                     np.asarray(self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values, dtype=object).astype(np.float32)]
 
         return next_state, reward, done
 

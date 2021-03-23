@@ -17,7 +17,7 @@ class DataGenerator():
         self.price_dependent = ['open', 'high', 'low', 'close']
 
         # Check Indicators and pop NaNs
-        self.df, n, k = self.check_indicators(self.df)
+        n, k = self.check_columns()
         self.price_dependent = np.concatenate([self.price_dependent,k], axis=0)
         self.df = self.df.iloc[n:,:]
         self.df.iloc[:,1:] = self.df.iloc[:, 1:].astype(np.float32)
@@ -48,17 +48,17 @@ class DataGenerator():
 
         print(f'\nData Generator initalized! Days available: {self.num}')
 
-    def check_indicators(self, df):
+    def check_columns(self):
 
-        logits = df.columns[df.isnull().sum() > 500]
+        logits = self.df.columns[self.df.isnull().sum() > 500]
         for logit in logits:
-            print('Popped: ', logit, ' with ', df.loc[:, logit].isnull().sum(), ' NaNs')
-            df.pop(logit)
+            print('Popped: ', logit, ' with ', self.df.loc[:, logit].isnull().sum(), ' NaNs')
+            self.df.pop(logit)
 
-        n = df.isnull().sum().max()
-        k = [col for col in df.columns if '_pdt' in col]
+        n = self.df.isnull().sum().max()
+        k = [col for col in self.df.columns if '_pdt' in col]
 
-        return df, n, k
+        return n, k
             
     def get_sample(self, k):
         # CS65849+816315646

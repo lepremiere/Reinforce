@@ -9,18 +9,21 @@ from libs.buffer import ReplayBuffer
 
 class Worker(Process):
     
-    def __init__(self, name, gen, buffer, task_q, result_q, agent_in_q, batch_gen_in, distributor_pipe, settings):
+    def __init__(self, name, gen, task_q, agent_in_q, batch_gen_in_q, pipe, replay_buffer, result_q, settings):
         Process.__init__(self)
         self.name = name
         self.window_size = settings['window_size']
-        self.env = Environment(DataGen=gen, normalization=settings['normalization'], verbose=settings['verbose'])
+        self.normalization = settings['normalization']
+        self.verbose = settings['verbose']
+        self.env = Environment(DataGen=gen, settings=settings)
 
         # Queues and Pipe
         self.task_q = task_q
         self.result_q = result_q
         self.agent_in_q = agent_in_q
-        self.batch_gen_in = batch_gen_in
-        self.distributor_pipe = distributor_pipe
+        self.batch_gen_in_q = batch_gen_in_q
+        self.replay_buffer = replay_buffer
+        self.pipe = pipe
 
     def run(self):
         while True:
@@ -28,11 +31,27 @@ class Worker(Process):
             if next_task is None:
                 self.task_q.task_done()
                 break
+            
+            if next_task == 'play':
+                state = self.env.reset()
+                done = False
+                states = []
+                rewards = []
+                
+                while not done:
+                    self.batch_gen_in_q.put((self.name, state))
+                    action = self.pipe.get()
+                    print(action, 'aaaaaa')
+                    next_state, reward, done = self.env.step(action=action, epsilon=0)
+                    states.append(next_state)
+                    rewards.append(reward)
+         
+                self.replay_buffer.add('a','b','c','d')
 
-            output = self.name # self.play_episode()
-            self.batch_gen_in.put(output)
+            elif next_task == 'train':
+                pass
 
-            self.task_queue.task_done()
+            self.task_q.task_done()
         print('Worker:', self.name,' is done!')
 
     def play_episode(self, day):
