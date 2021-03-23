@@ -8,25 +8,32 @@ class BatchGenerator(Process):
         self.batch_gen_in_q = in_q
         self.agent_in_q = out_q 
         self.k = k
+        self.verbose = settings['verbose']
     
     def run(self):
         states1 = []
         states2 = []
-
         ns = []
         while True:
             n, state = self.batch_gen_in_q.get()
-            if state == None:
-                break
+            if n == None:
+                states1 = np.reshape(states1, np.shape(states1))
+                states2 = np.reshape(states2, np.shape(states2))
+                self.agent_in_q.put((ns, states1, states2))
+                self.batch_gen_in_q.task_done() 
+                break  
             states1.append(state[0])
             states2.append(state[1])
             ns.append(n)
             if len(ns) >= self.k:
+                states1 = np.reshape(states1, np.shape(states1))
+                states2 = np.reshape(states2, np.shape(states2))
                 self.agent_in_q.put((ns, states1, states2))
                 states1 = []
                 states2 = []
                 ns = []
-                print('Batch generated!')
+                if self.verbose > 1:
+                    print('Batch generated!')
             self.batch_gen_in_q.task_done()     
         print('\nBatch Generator is done!')
         return
@@ -40,13 +47,11 @@ class Distributor(Process):
     
     def run(self):
         while True:
-            ns, policies = self.distributor_in_q.get()
-            print(ns,policies)
-            if policies == None:
+            ns, actions = self.distributor_in_q.get()
+            self.distributor_in_q.task_done()
+            if ns == None:
                 break
             for i in range(len(ns)):
-                actions = np.random.choice(policies[i])
                 self.pipes[int(ns[i])].put(actions[i])
-            self.distributor_in_q.task_done()
         print('Prediciton Queue is done!')
         return

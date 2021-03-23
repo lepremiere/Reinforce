@@ -26,26 +26,25 @@ if __name__ == "__main__":
 
     settings = {'batch_size': 64,
                 'num_episodes': 1,
-                'window_size': 10,
+                'window_size': 100,
                 'normalization': False,
                 'buffer_size': int(1e4),
-                'verbose': 0}
+                'verbose': 1}
     num_workers = 1
 
     # Queues
     task_q = mp.JoinableQueue()
     agent_in_q = mp.JoinableQueue()
-    trainer_in_q = mp.JoinableQueue()
     batch_gen_in_q = mp.JoinableQueue()
     distributor_in_q = mp.JoinableQueue()
     result_q = mp.JoinableQueue()
     pipes = [mp.JoinableQueue() for _ in range(num_workers)]
 
     # Processes
-    gen = DataGenerator(symbol="SP500_M1", fraction=[1, 1e4], settings=settings)
+    gen = DataGenerator(symbol="SP500_M1", fraction=[1, 1e6], settings=settings)
     batch_gen = BatchGenerator(in_q=batch_gen_in_q, out_q=agent_in_q, k=num_workers, settings=settings).start()
     distributor = Distributor(in_q=distributor_in_q, pipes=pipes, settings=settings).start()
-    buffer = 1
+    # buffer = ReplayBuffer(settings).start()
     env = Environment(DataGen=gen, settings=settings)
     agent = Agent(env=env, in_q=agent_in_q, out_q=distributor_in_q, settings=settings)
     workers = [Worker(name=str(i),
@@ -54,7 +53,7 @@ if __name__ == "__main__":
                       agent_in_q=agent_in_q,
                       batch_gen_in_q=batch_gen_in_q,
                       pipe=pipes[i],
-                      replay_buffer=buffer,
+                      replay_buffer=1,
                       result_q=result_q,
                       settings=settings) \
                 for i in range(num_workers)]
@@ -69,7 +68,7 @@ if __name__ == "__main__":
     t4 = time.time() 
     print('Time to start workers: ', t4-t3, ' Num workers: ', num_workers)
 
-    for i in range(3):
+    for i in range(5):
         task_q.put('play')
 
     for i in range(num_workers):
@@ -79,13 +78,15 @@ if __name__ == "__main__":
     for w in workers:
         w.join()
 
+    print('Task: ',task_q.get())
     task_q.join()
-    agent_in_q.put(None)
-    agent_in_q.join()
-    trainer_in_q.join()
-    batch_gen_in_q.put(None)
+    print('Agent: ',agent_in_q.get())
+    agent_in_q.terminate()
+    print('Batchgen: ',batch_gen_in_q.get())
+    batch_gen_in_q.put((None, None))
     batch_gen_in_q.join()
-    distributor_in_q.put(None)
+    print('Dist: ', distributor_in_q.get())
+    distributor_in_q.put((None, None))
     distributor_in_q.join()
     result_q.join()
     [pipe.join() for pipe in pipes]

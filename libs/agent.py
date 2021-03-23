@@ -27,18 +27,15 @@ class Agent():
     def run(self):
         while True:
             ns, states1, states2 = self.agent_in_q.get()
-            print(np.shape(states1),np.shape(states2))
             actions = []
-            if states1 == None:
+            if ns == None:
                 break
             if np.random.rand(1,1) > self.epsilon:
                 policy = self.model.actor(inputs=(states1, states2), training=False)
-                print(policy[0])
             else:
                 policy = [[0.7,0.1,0.1,0.1] for _ in range(len(ns))]
                 if self.epsilon > self.epsilon_limit:
-                    self.epsilon *= self.epsilon_decay  #
-            print(policy)
+                    self.epsilon *= self.epsilon_decay  
             for i in range(np.shape(policy)[0]):
                 actions.append(np.random.choice(self.num_actions, p=get_value(policy[i])))
             self.distributor_in_q.put((ns, actions))   

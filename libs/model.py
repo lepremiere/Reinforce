@@ -28,12 +28,13 @@ class NN(Model):
 
         x = Dense(128, kernel_regularizer=l2(1e3))(state)
         x = Activation('relu')(x)
-        x = Dense(32, kernel_regularizer=l2(1e3))(state)
+        x = Dense(256, kernel_regularizer=l2(1e3))(state)
         x = Activation('relu')(x)
         x = Flatten()(x)
 
         w = Dense(128, kernel_regularizer=l2(1e3))(game)
-        w = Dense(32, kernel_regularizer=l2(1e3))(w)
+        w = Activation('relu')(w)
+        w = Dense(256, kernel_regularizer=l2(1e3))(w)
         w = Activation('relu')(w)
         w = Flatten()(w)
 

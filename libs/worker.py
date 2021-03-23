@@ -41,12 +41,11 @@ class Worker(Process):
                 while not done:
                     self.batch_gen_in_q.put((self.name, state))
                     action = self.pipe.get()
-                    print(action, 'aaaaaa')
                     next_state, reward, done = self.env.step(action=action, epsilon=0)
                     states.append(next_state)
                     rewards.append(reward)
          
-                self.replay_buffer.add('a','b','c','d')
+                # self.replay_buffer.add('a','b','c','d')
 
             elif next_task == 'train':
                 pass
