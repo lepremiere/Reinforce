@@ -3,19 +3,22 @@ import time
 import numpy as np
 from multiprocessing import Process
 
+from tensorflow.python.keras.layers.merge import concatenate
+
 from libs.environment import Environment
 from libs.datagen import DataGenerator
 from libs.buffer import ReplayBuffer
 
 class Worker(Process):
     
-    def __init__(self, name, gen, task_q, agent_in_q, batch_gen_in_q, pipe, replay_buffer, result_q, settings):
+    def __init__(self, name, gen, task_q, agent_in_q, batch_gen_in_q, pipe, replay_buffer, result_q, v, settings):
         Process.__init__(self)
         self.name = name
         self.window_size = settings['window_size']
         self.normalization = settings['normalization']
         self.verbose = settings['verbose']
         self.env = Environment(DataGen=gen, settings=settings)
+        self.v = v
 
         # Queues and Pipe
         self.task_q = task_q
@@ -35,23 +38,41 @@ class Worker(Process):
             if next_task == 'play':
                 state = self.env.reset()
                 done = False
-                states = []
+                states = [[state[0]], [state[1]]]
                 rewards = []
+                advantages = []
+                values = []
                 
                 while not done:
-                    self.batch_gen_in_q.put((self.name, state))
-                    action = self.pipe.get()
+                    self.batch_gen_in_q.put(('actions', self.name, state, 0))
+                    action, _, _ = self.pipe.get()
                     next_state, reward, done = self.env.step(action=action, epsilon=0)
-                    states.append(next_state)
+                    self.batch_gen_in_q.put(('values', self.name, state, (action, reward, next_state, [done])))
+                    _, advantage, value = self.pipe.get()
+                    self.pipe.task_done()
+                    
+                    advantages.append(advantage)
+                    values.append([value])
                     rewards.append(reward)
-         
-                # self.replay_buffer.add('a','b','c','d')
+                    state = next_state
+                    if not done:
+                        states = (np.concatenate([states[0], [state[0]]], axis=0),
+                                np.concatenate([states[1], [state[1]]], axis=0))
+
+                advantages = np.reshape(advantages, np.shape(advantages))
+                values = np.reshape(values, np.shape(values))
+                self.replay_buffer.add(states, advantages, values, np.mean(rewards))
+                if self.verbose == 2:
+                    print('Episode reward: ', round(np.mean(rewards),2))
 
             elif next_task == 'train':
-                pass
+                samples = self.replay_buffer.get_samples(skewed=False)
+                states, advantages, values = samples[0]
+                self.agent_in_q.put(('train', self.name, states, (advantages, values)))
 
             self.task_q.task_done()
         print('Worker:', self.name,' is done!')
+        self.v.value -=1
 
     def play_episode(self, day):
 

@@ -54,14 +54,12 @@ class Environment():
         self.trade = self.trade_template.copy()
         
         if self.verbose > 0:
-            print(f'New Day started: {self.day.date.iloc[self.window_size]}')
-            logging.info('aaaa')
+            print(f'New Day started: {self.day.date.iloc[self.window_size]}, Length: {len(self.day)}')
             
         # Starting state
         self.day = self.day.to_numpy()
-        state = [np.asarray(self.day[self.idx:self.window_size + self.idx, 1:], dtype=object).astype(np.float32),\
-                 np.asarray(self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values, dtype=object).astype(np.float32)]
-        
+        state = (np.asarray(self.day[self.idx:self.window_size + self.idx, 1:], dtype=object).astype(np.float32),\
+                 np.asarray(self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values, dtype=object).astype(np.float32))
 
         return state
 ####################################################################################    
@@ -117,8 +115,8 @@ class Environment():
             done = True        
         
         self.idx += 1
-        next_state = [np.asarray(self.day[self.idx:self.window_size + self.idx, 1:], dtype=object).astype(np.float32),\
-                     np.asarray(self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values, dtype=object).astype(np.float32)]
+        next_state = (np.asarray(self.day[self.idx:self.window_size + self.idx, 1:], dtype=object).astype(np.float32),\
+                     np.asarray(self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values, dtype=object).astype(np.float32))
 
         return next_state, reward, done
 

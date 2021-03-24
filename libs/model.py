@@ -53,28 +53,23 @@ class NN(Model):
         self.critic = Model(inputs=[state, game], outputs=critic_out)
         self.critic.compile(loss="mse", optimizer=Adam(lr=self.lr_critic)) 
 
-        if self.verbose > 0:
-            plot_model(self.actor, to_file='./1_model/Actor.png',
-                show_shapes=True, show_dtype=True,
-                show_layer_names=True)
-            plot_model(self.critic, to_file='./1_model/Critic.png',
-                show_shapes=True, show_dtype=True,
-                show_layer_names=True) 
-            if self.verbose > 1:
-                self.actor.summary()
-                self.critic.summary()
+        # if self.verbose > 5:
+        #     plot_model(self.actor, to_file='./1_model/Actor.png',
+        #         show_shapes=True, show_dtype=True,
+        #         show_layer_names=True)
+        #     plot_model(self.critic, to_file='./1_model/Critic.png',
+        #         show_shapes=True, show_dtype=True,
+        #         show_layer_names=True) 
+        #     if self.verbose > 1:
+        #         self.actor.summary()
+        #         self.critic.summary()
       
 
     # Actor Functions
     def train_actor(self, states, games, advantages):
         self.actor.fit(x=[states, games], y=advantages, verbose=0, epochs=1)
 
-    def predict_actor(self, states):
-        return self.actor(states)
-
     # Critic Functions
     def train_critic(self, states, games, values):
         self.critic.fit(x=[states, games], y=values, verbose=0, epochs=1)
 
-    def predict_critic(self, states):
-        return self.critic(states)
