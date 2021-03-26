@@ -1,15 +1,23 @@
 import numpy as np 
 import pandas as pd 
-import pandas_ta as ta 
+from multiprocessing import Process
 
-class DataGenerator():
-    def __init__(self, symbol: str, fraction, settings) -> None:
+class DataGenerator(Process):
+    def __init__(self, in_q, out_q, val, settings) -> None:
+        Process.__init__(self)
+        self.symbol = settings['symbol']
+        self.fraction = settings['fraction']
+        self.verbose = settings['verbose']
         self.sample_mode = 'random'
         self.window_size = settings['window_size']
-        self.df = pd.read_csv("D:/Data/" + symbol + ".csv",
+        self.batch_size = 1
+        self.data_gen_in_q = in_q
+        self.data_gen_out_q = out_q
+        self.val = val
+        self.df = pd.read_csv(r"D:/Data/" + self.symbol  + ".csv",
                                 header=0,
-                                skiprows=range(1,int(fraction[0])),
-                                nrows=fraction[1])
+                                skiprows=range(1,int(self.fraction [0])),
+                                nrows=self.fraction [1])
         if self.df.columns[0] == 'Date':
             self.df.columns = map(str.lower, self.df.columns)
         time = pd.to_datetime(self.df.date)
@@ -45,14 +53,15 @@ class DataGenerator():
 
         self.days = days
         self.num = len(self.days)
-
-        print(f'\nData Generator initalized! Days available: {self.num}')
+        if self.verbose > 0:
+            print(f'\nData Generator initalized! Days available: {self.num}')
 
     def check_columns(self):
 
         logits = self.df.columns[self.df.isnull().sum() > 500]
         for logit in logits:
-            print('Popped: ', logit, ' with ', self.df.loc[:, logit].isnull().sum(), ' NaNs')
+            if self.verbose > 0:
+                print('Popped: ', logit, ' with ', self.df.loc[:, logit].isnull().sum(), ' NaNs')
             self.df.pop(logit)
 
         n = self.df.isnull().sum().max()
@@ -60,11 +69,16 @@ class DataGenerator():
 
         return n, k
             
-    def get_sample(self, k):
-        # CS65849+816315646
-        if self.sample_mode == 'random':
-            num = np.random.choice(len(self.days), k)[0]
-        return self.days[num]
+    def run(self):
+        while True:
+            try:
+                sampling = self.data_gen_in_q.get(timeout=0.1)
+                if sampling:
+                    num = np.random.choice(len(self.days), self.batch_size)[0]
+                    self.data_gen_out_q.put(self.days[num])
+            except:
+                if np.sum(self.val[:]) == 0:
+                    break
 
 if __name__ == "__main__":
 

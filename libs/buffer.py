@@ -7,7 +7,7 @@ class ReplayBuffer():
     def __init__(self, settings) -> None:
         self.memory = []
         self.rewards = []
-        self.batch_size = settings['batch_size'] 
+        self.batch_size = settings['buffer_batch_size'] 
         self.buffer_size = settings['buffer_size']
 
     def add(self, states, advantages, values, total_reward):
@@ -23,9 +23,9 @@ class ReplayBuffer():
     def get_samples(self, skewed=False):
         if skewed:
             weights = np.cumsum(self.rewards/np.sum(self.rewards))
-            samples = random.choices(self.memory, cum_weights=weights, k=1)
+            samples = random.choices(self.memory, cum_weights=weights, k=self.batch_size)
         else:
-            samples = random.sample(self.memory, k=1)
+            samples = random.sample(self.memory, k=self.batch_size)
         
         return samples
 

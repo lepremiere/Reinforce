@@ -15,11 +15,12 @@ class Agent(Process):
         self.num_values = 1
         self.game_size =  (self.env.window_size, len(self.env.tracker_list))
         self.gamma = 0.99
-        self.epsilon = 0.001
+        self.epsilon = 0.99
         self.epsilon_decay = 0.999
         self.epsilon_limit = 0.001
         self.lr_actor = 1e-5
-        self.lr_critic = 5e-5
+        self.lr_critic = 2e-5
+        self.best_result = 0
         self.val = val
         self.settings = settings
         self.verbose = settings['verbose']
@@ -29,10 +30,13 @@ class Agent(Process):
                     self.num_values, self.game_size,
                     self.lr_actor, self.lr_critic,
                     self.settings)
+        if self.verbose > 0:
+            print('Agent ready!')
         while True:
-            type, ns, states, val_stuff = self.agent_in_q.get()  
+            type, ns, states, val_stuff = self.agent_in_q.get()
             self.agent_in_q.task_done()
-            if self.val.value == 0:              
+
+            if np.sum(self.val[:]) == 0:              
                 break
 
             # Switch between purpose
@@ -41,10 +45,10 @@ class Agent(Process):
                 if np.random.rand(1,1) > self.epsilon:
                     policy = self.model.actor(inputs=states, training=False)
                 else:
-                    policy = [[0.7,0.1,0.1,0.1] for _ in range(len(ns))]
+                    policy = [[0.25,0.25,0.25,0.25] for _ in range(len(ns))]
                     if self.epsilon > self.epsilon_limit:
                         self.epsilon *= self.epsilon_decay  
-                for i in range(np.shape(policy)[0]):
+                for i in range(len(policy)):
                     actions.append(np.random.choice(self.num_actions, p=get_value(policy[i])))
 
                 self.distributor_in_q.put((ns, actions, np.zeros(shape=(len(ns))), np.zeros(shape=(len(ns)))))    
@@ -67,15 +71,16 @@ class Agent(Process):
                 self.distributor_in_q.put((ns, np.zeros(shape=(len(ns))), advantages, values))    
 
             if type == 'train':
-                if self.verbose == 1:
-                    print('Training...')
                 advantages, values = val_stuff
                 self.model.actor.fit(x=states, y=advantages,
-                                    epochs=3,
+                                    epochs=1,
                                     verbose=0)
                 self.model.critic.fit(x=states, y=values,
-                                     epochs=3,
+                                     epochs=1,
                                      verbose=0)
+                
+                self.model.actor.save('./1_model/actor.h5')
+                self.model.critic.save('./1_model/critic.h5')
 
         a = self.model.actor.predict(x=(np.array([np.ones(shape=self.num_observations)]), np.array([np.ones(shape=self.game_size)])))
         b = self.model.critic.predict(x=(np.array([np.ones(shape=self.num_observations)]), np.array([np.ones(shape=self.game_size)])))

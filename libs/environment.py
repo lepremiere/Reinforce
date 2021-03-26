@@ -9,13 +9,16 @@ from libs.datagen import DataGenerator
 
 class Environment():
 
-    def __init__(self, DataGen, settings) -> None:
+    def __init__(self, in_q, out_q, news_q, settings) -> None:
         self.verbose = settings['verbose']
         self.window_size = settings['window_size']
         self.normalization = settings['normalization']
-        self.datagen = DataGen
-        self.observation_space = self.datagen.df.dtypes
-        self.observation_space_n = [self.window_size, np.shape(self.datagen.days[0])[1]-1] # -1 bc date is not passed
+        self.news_q = news_q
+        self.data_gen_in_q = in_q
+        self.data_gen_out_q = out_q
+        self.data_gen_in_q.put(True)
+        sample = self.data_gen_out_q.get()
+        self.observation_space_n = [self.window_size, np.shape(sample)[1]-1] # -1 bc date is not passed
         self.action_space = [0,1,2,3]
         self.action_space_n = len(self.action_space)
 
@@ -32,7 +35,8 @@ class Environment():
                             'Reward': 0}
 ####################################################################################
     def reset(self):
-        self.day = self.datagen.get_sample(k=1)
+        self.data_gen_in_q.put(True)
+        self.day = self.data_gen_out_q.get()
         self.len_day = len(self.day) -self.window_size
 
         # Normalize to Open of first data
@@ -52,14 +56,11 @@ class Environment():
         self.trade_template = {'Opentime': None, 'Closetime': None,'Openindex': None, 'Closeindex': None, 
                                 'Open': None, 'Close':None, 'Profit':None, 'Direction':None}
         self.trade = self.trade_template.copy()
-        
-        if self.verbose > 0:
-            print(f'New Day started: {self.day.date.iloc[self.window_size]}, Length: {len(self.day)}')
-            
+                    
         # Starting state
         self.day = self.day.to_numpy()
-        state = (np.asarray(self.day[self.idx:self.window_size + self.idx, 1:], dtype=object).astype(np.float32),\
-                 np.asarray(self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values, dtype=object).astype(np.float32))
+        state = (np.array(self.day[self.idx:self.window_size + self.idx, 1:]).astype(np.float32),\
+                 np.array(self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].to_numpy()).astype(np.float32))
 
         return state
 ####################################################################################    
@@ -77,14 +78,14 @@ class Environment():
 
             if self.trade['Opentime'] == None:
                 if action == 0 or action == 3:
-                    reward = -5
+                    reward = 0
                     if action == 3:
-                        reward = -10
+                        reward = -1
                 else:
                     self.open_position(action) 
                     position = self.trade['Direction']
                     current_profit = (self.day[self.idx + self.window_size, 7] - self.trade['Open']) * position
-                    reward = -5
+                    reward = +1
         
             else:
                 position = self.trade['Direction']
@@ -93,7 +94,7 @@ class Environment():
 
                 if action < 3:
                     if action != 0:
-                        reward = -10
+                        reward = -1
                 else:
                     self.close_position() 
                     profit = self.trade['Profit']
@@ -105,6 +106,7 @@ class Environment():
             reward += some*10 
             self.tracker.iloc[self.idx, :] = [0, action, position, current_profit, total_profit, reward]
             if self.verbose == 4:
+                self.news_q.put(('Movement', self.trade))
                 print(f'Close: {round(self.day[self.idx + self.window_size, 7],2): >7} Action: {action: >2} Position:{position: >5}',
                       f' Current Profit: {round(current_profit,2): >7} Total Profit: {round(total_profit,2): >7} Reward: {round(reward,2): >8}',
                       f' Epsilon: {round(epsilon,3)}') 
@@ -115,8 +117,8 @@ class Environment():
             done = True        
         
         self.idx += 1
-        next_state = (np.asarray(self.day[self.idx:self.window_size + self.idx, 1:], dtype=object).astype(np.float32),\
-                     np.asarray(self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].values, dtype=object).astype(np.float32))
+        next_state = (np.array(self.day[self.idx:self.window_size + self.idx, 1:]).astype(np.float32),\
+                      np.array(self.tracker.iloc[self.idx:self.idx + self.window_size, 0:].to_numpy()).astype(np.float32))
 
         return next_state, reward, done
 
@@ -139,34 +141,15 @@ class Environment():
                                 self.trade['Direction']) 
         self.trades = self.trades.append(self.trade, ignore_index=True) 
 
-        if self.verbose == 2:   
-            status = self.trade["Profit"] > 0
-            if status:
-                outcome = 'Won'
-            else:
-                outcome = 'Loss'
-            print(f'Opentime: {self.trade["Opentime"]}  Duration: {self.trade["Closeindex"]-self.trade["Openindex"]: >3} m  ', 
-                    f'Open: {np.round(self.trade["Open"],2): >8}  Close: {np.round(self.trade["Close"],2): >8} ',
-                    f'Profit: {np.round(self.trade["Profit"],2): >5}  Direction: {self.trade["Direction"]: >3} Status: {outcome: >3}')
+        if self.verbose == 2:
+            self.news_q.put(('Trade', self.trade))
+
+        
         
 ####################################################################################
 
 if __name__ == "__main__":
-
-    window_size = 100
-    gen = DataGenerator(symbol="SP500_M1",
-                        fraction=[0, 1e4],
-                        window_size=window_size)
-    env = Environment(gen, normalization=False, verbose=1)
-  
-    n = 3
-
-    for i in range(n):
-        state = env.reset()
-        while True:
-            state, reward, done = env.step(action=np.random.choice([0,1,2,3], 1, p=[0.5, 0.1,0.1, 0.3]), epsilon=0)
-            if done:
-                break
+    pass
 
     
   
