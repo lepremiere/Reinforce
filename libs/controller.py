@@ -18,12 +18,13 @@ from libs.communication import *
 
 
 class Controller(Process):
-    def __init__(self, news_q, val, settings) -> None:
+    def __init__(self, news_q, val, market, settings) -> None:
         Process.__init__(self)
         self.t = time.time()
         self.settings = settings
         self.num_workers = settings['num_workers']
         self.verbose = settings['verbose']
+        self.market = market
         self.val = val
 
         # Queues
@@ -41,7 +42,7 @@ class Controller(Process):
         self.batch_gen = BatchGenerator(in_q=self.batch_gen_in_q, out_q=self.agent_in_q, val=self.val, settings=self.settings)
         self.distributor = Distributor(in_q=self.distributor_in_q, pipes=self.pipes, val=self.val, settings=self.settings)
         self.buffer = ReplayBuffer(self.settings)
-        self.env = Environment(in_q=self.data_gen_in_q, out_q=self.data_gen_out_q, news_q=self.news_q, settings=self.settings)
+        self.env = Environment(in_q=self.data_gen_in_q, out_q=self.data_gen_out_q, news_q=self.news_q, market=self.market, settings=self.settings)
         self.agent = Agent(env=self.env, in_q=self.agent_in_q, out_q=self.distributor_in_q, val=self.val, settings=self.settings)
         self.workers = [Worker(name=str(i),
                         data_gen_in_q=self.data_gen_in_q,
@@ -52,6 +53,7 @@ class Controller(Process):
                         pipe=self.pipes[i],
                         replay_buffer=self.buffer,
                         news_q=self.news_q,
+                        market=self.market,
                         val=self.val,
                         settings=self.settings) \
                     for i in range(self.num_workers)]

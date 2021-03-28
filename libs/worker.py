@@ -19,6 +19,7 @@ class Worker(Process):
                  pipe,
                  replay_buffer,
                  news_q,
+                 market,
                  val,
                  settings):
         Process.__init__(self)
@@ -32,6 +33,7 @@ class Worker(Process):
         self.env = Environment(in_q=self.data_gen_in_q,
                                out_q=self.data_gen_out_q,
                                news_q=news_q,
+                               market=market,
                                settings=settings)
         self.val = val
 
@@ -58,7 +60,6 @@ class Worker(Process):
                 rewards = []
                 advantages = []
                 values = []
-
                 
                 while not done:
                     self.batch_gen_in_q.put(('actions', self.name, state, 0))
@@ -76,7 +77,7 @@ class Worker(Process):
                     if not done:
                         states = (np.concatenate([states[0], [state[0]]], axis=0),
                                   np.concatenate([states[1], [state[1]]], axis=0))
-            
+           
                 advantages = np.reshape(advantages, np.shape(advantages))
                 values = np.reshape(values, np.shape(values))
                 self.replay_buffer.add(states, advantages, values, np.mean(rewards))
@@ -103,6 +104,15 @@ class Worker(Process):
     
     def get_statistics(self):
         pass
+
+    def discount_reward(self, rewards):
+        discounted_reward = []
+        for i in range(len(rewards)):
+            actual = rewards[i]
+            gammas = 0.9**np.arange(1, len(rewards[i:])+1)
+            discounted_reward.append(rewards[i:]@gammas)
+        
+        return discounted_reward
 
 if __name__ == "__main__":
     pass

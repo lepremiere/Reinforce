@@ -18,8 +18,8 @@ class Agent(Process):
         self.epsilon = 0.99
         self.epsilon_decay = 0.999
         self.epsilon_limit = 0.001
-        self.lr_actor = 1e-5
-        self.lr_critic = 2e-5
+        self.lr_actor = settings['lr_actor']
+        self.lr_critic = settings['lr_critic']
         self.best_result = 0
         self.val = val
         self.settings = settings
@@ -45,7 +45,7 @@ class Agent(Process):
                 if np.random.rand(1,1) > self.epsilon:
                     policy = self.model.actor(inputs=states, training=False)
                 else:
-                    policy = [[0.25,0.25,0.25,0.25] for _ in range(len(ns))]
+                    policy = [[0.6,0.1,0.1,0.2] for _ in range(len(ns))]
                     if self.epsilon > self.epsilon_limit:
                         self.epsilon *= self.epsilon_decay  
                 for i in range(len(policy)):
@@ -79,8 +79,8 @@ class Agent(Process):
                                      epochs=1,
                                      verbose=0)
                 
-                self.model.actor.save('./1_model/actor.h5')
-                self.model.critic.save('./1_model/critic.h5')
+                # self.model.actor.save('./1_model/actor.h5')
+                # self.model.critic.save('./1_model/critic.h5')
 
         a = self.model.actor.predict(x=(np.array([np.ones(shape=self.num_observations)]), np.array([np.ones(shape=self.game_size)])))
         b = self.model.critic.predict(x=(np.array([np.ones(shape=self.num_observations)]), np.array([np.ones(shape=self.game_size)])))

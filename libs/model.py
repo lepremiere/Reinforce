@@ -27,15 +27,15 @@ class NN(Model):
         state = Input(shape=self.num_observations, name='Input')
         game = Input(shape=self.game_size, name='Input_game')
 
-        x = Dense(128, kernel_regularizer=l2(1e3))(state)
+        x = Dense(128)(state)
         x = Activation('relu')(x)
-        x = Dense(256, kernel_regularizer=l2(1e3))(state)
+        x = Dense(256)(state)
         x = Activation('relu')(x)
         x = Flatten()(x)
 
-        w = Dense(128, kernel_regularizer=l2(1e3))(game)
+        w = Dense(128)(game)
         w = Activation('relu')(w)
-        w = Dense(256, kernel_regularizer=l2(1e3))(w)
+        w = Dense(256)(w)
         w = Activation('relu')(w)
         w = Flatten()(w)
 
