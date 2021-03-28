@@ -43,7 +43,7 @@ class Controller(Process):
         self.distributor = Distributor(in_q=self.distributor_in_q, pipes=self.pipes, val=self.val, settings=self.settings)
         self.buffer = ReplayBuffer(self.settings)
         self.env = Environment(in_q=self.data_gen_in_q, out_q=self.data_gen_out_q, news_q=self.news_q, market=self.market, settings=self.settings)
-        self.agent = Agent(env=self.env, in_q=self.agent_in_q, out_q=self.distributor_in_q, val=self.val, settings=self.settings)
+        self.agent = Agent(env=self.env, in_q=self.agent_in_q, out_q=self.distributor_in_q, news_q=self.news_q, val=self.val, settings=self.settings)
         self.workers = [Worker(name=str(i),
                         data_gen_in_q=self.data_gen_in_q,
                         data_gen_out_q=self.data_gen_out_q,
@@ -75,15 +75,16 @@ class Controller(Process):
         if self.verbose > 0:
             print('Time to start sampling: ', round(t2-self.t, 2), ' s,  Num workers: ', self.num_workers)
 
-    def work(self, cycles, schedule):
-        print('Num cycles: ', cycles, ', Selfplay episodes: ', schedule[0], ' + ',self.num_workers, \
-              ', Training episodes: ', schedule[1])
+    def work(self, schedule):
+        print('Num cycles: ', schedule[0], ', Selfplay episodes: ', schedule[1], ' + ',self.num_workers, \
+              ', Training episodes: ', schedule[2])
 
         [self.task_q.put('play') for _ in range(self.num_workers)]
-        for _ in range(cycles):
-            for _ in range(schedule[0]):
-                self.task_q.put('play')
+        self.task_q.put('train')
+        for _ in range(schedule[0]):
             for _ in range(schedule[1]):
+                self.task_q.put('play')
+            for _ in range(schedule[2]):
                 self.task_q.put('train')  
         self.first_run = False  
 

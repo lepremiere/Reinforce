@@ -7,17 +7,17 @@ from pyqtgraph.Qt import QtGui
 from libs.overwatch_fig import display
 
 class Overwatch(Process):
-    def __init__(self, in_q, val, settings) -> None:
+    def __init__(self, in_q, val, settings, schedule) -> None:
         Process.__init__(self)
         self.news_in_q = in_q
         self.val = val
         self.settings = settings
-        self.counter = [0,0,0]
+        self.counter = [0,0,0,0,0]
         self.samples = 0
         self.verbose = settings['verbose']
 
-        self.plot_qs = [JoinableQueue() for _ in range(3)]
-        p = Process(target=display, args=('bob',self.plot_qs))
+        self.plot_qs = [JoinableQueue() for _ in range(7)]
+        p = Process(target=display, args=('bob',self.plot_qs, settings, schedule))
         p.start()
 
     def run(self):
@@ -28,31 +28,39 @@ class Overwatch(Process):
 
                 # Episode end
                 if message == 'Episode_end':
-                    
+                    length, mean_reward, plus, minus, mean_return, mean_duration, num_trades = content
+                    self.samples += length
+                    self.plot_qs[0].put([self.counter[0], mean_reward]) 
+                    self.plot_qs[1].put([self.counter[0], (mean_return/length)*60*24])
+                    self.plot_qs[2].put([self.counter[0], mean_duration])
+                    self.plot_qs[3].put([self.counter[0], (num_trades/length)*60])
                     self.counter[0] += 1
-                    self.samples += content[0]
-                    self.plot_qs[0].put([self.counter[0], content[1]]) 
 
                     if self.verbose > 0:
-                        print(f'Episode: {self.counter[0]: >3},  Length: {content[0]: >4}, Reward: {content[1]: >6} ({content[2]: >6},  {content[3]: >6})',
-                                f'{0}')
-  
+                        print(f'Episode: {self.counter[0]: >3},  Length: {content[0]: >4}',
+                              f'Mean Reward: {mean_reward: >8} ({plus: >9},  {minus: >9}),',
+                              f'Return: {round((mean_return/length)*60*24, 2): >9}/day,'
+                              f'Mean Duration: {mean_duration: >6}, Num Trades: {round((num_trades/length)*60, 2): >3}/hour')
+
+                # Epsilon
+                if message == 'Epsilon':
+                    epsilon = content
+                    self.plot_qs[4].put([self.counter[1], epsilon])
+                    self.counter[1] += 1
+
                 # Trades
                 if message == 'Trade':
                     trade = content
-                    self.plot_qs[1].put([self.counter[1], np.round(trade["Profit"],2)])
-                    self.counter[1] += 1
-
-                    if False:
-                        status = trade["Profit"] > 0
-                        if status:
-                            outcome = 'Won'
-                        else:
-                            outcome = 'Loss'
-                        print(f'Opentime: {trade["Opentime"]}  Duration: {trade["Closeindex"]-trade["Openindex"]: >3} m  ', 
-                                f'Open: {np.round(trade["Open"],2): >8}  Close: {np.round(trade["Close"],2): >8} ',
-                                f'Profit: {np.round(trade["Profit"],2): >5}  Direction: {trade["Direction"]: >3} Status: {outcome: >3}')        
+                    self.plot_qs[5].put([self.counter[2], np.round(trade["Profit"],2)])
+                    self.counter[2] += 1     
                 
+                # Loss
+                if message == 'Loss':
+                    loss = content
+                    self.plot_qs[6].put([self.counter[3], loss[0], loss[1]])
+                    self.counter[3] += 1
+                    print('aaa', loss)
+
                 # Movement
                 if message == 'Action':
                     pass

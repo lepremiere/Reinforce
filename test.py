@@ -6,16 +6,18 @@ from overwatch import Overwatch
 if __name__ == "__main__":
     t = time.time()
     settings ={'symbol': 'SP500_M1_TA',
-                'fraction': [1e5, 1e5],
+                'fraction': [1e6, 3e3],
                 'window_size': 100,
-                'num_workers': 20,
-                'buffer_size': int(1e3),
+                'num_workers': 12,
+                'buffer_size': 10,
                 'buffer_batch_size': 1,
                 'normalization': False,
                 'skewed': True,
-                'training_epochs': 1,
-                'lr_actor': 1e-5,
-                'lr_critic': 2e-5,
+                'training_epochs': 5,
+                'gamma': 0.999,
+                'epsilon': [0.99, 0.999, 0.0001],
+                'lr_actor': 1e-8,
+                'lr_critic': 1e-8,
                 'verbose': 1,
                 'start_time': t}
     market = {'Spread': 1.2,
@@ -24,14 +26,13 @@ if __name__ == "__main__":
               'MinLot': 0.1,
              }
 
-    cycles = 1000
-    schedule = [1, 1]
+    schedule = [150, 6, 1]
 
     val = Array('i', [1 for _ in range(settings['num_workers'])])
     news_in_q = JoinableQueue()
-    overwatch = Overwatch(in_q=news_in_q, val=val, settings=settings).start()
+    overwatch = Overwatch(in_q=news_in_q, val=val, settings=settings, schedule=schedule).start()
     controller = Controller(news_q=news_in_q, val=val, market=market, settings=settings)
-    controller.work(cycles, schedule)
+    controller.work(schedule)
     controller.deinit()
     news_in_q.close()
 

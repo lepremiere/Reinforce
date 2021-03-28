@@ -27,15 +27,17 @@ class NN(Model):
         state = Input(shape=self.num_observations, name='Input')
         game = Input(shape=self.game_size, name='Input_game')
 
-        x = Dense(128)(state)
+        x = BatchNormalization()(state)
+        x = Dense(64)(x)
         x = Activation('relu')(x)
-        x = Dense(256)(state)
+        x = Dense(128)(x)
         x = Activation('relu')(x)
         x = Flatten()(x)
 
-        w = Dense(128)(game)
+        w = BatchNormalization()(game)
+        w = Dense(64)(w)
         w = Activation('relu')(w)
-        w = Dense(256)(w)
+        w = Dense(128)(w)
         w = Activation('relu')(w)
         w = Flatten()(w)
 
@@ -52,7 +54,7 @@ class NN(Model):
         critic_x = Dense(64, activation='relu', name='Dense_cr')(x)
         critic_out = Dense(self.num_values, activation='linear')(critic_x)
         self.critic = Model(inputs=[state, game], outputs=critic_out)
-        self.critic.compile(loss="mse", optimizer=Adam(lr=self.lr_critic)) 
+        self.critic.compile(loss="mae", optimizer=Adam(lr=self.lr_critic)) 
 
         # plot_model(self.actor, to_file='./1_model/Actor.png',
         #     show_shapes=True, show_dtype=True,

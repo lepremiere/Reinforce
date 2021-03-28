@@ -47,10 +47,10 @@ class Environment():
         self.tracker = self.day.assign(**self.tracker_list).iloc[:,-6:]
 
         # Tradebook for closed trades
-        self.trades = pd.DataFrame(columns=['Opentime', 'Closetime','Openindex', 'Closeindex',
+        self.trades = pd.DataFrame(columns=['Opentime', 'Closetime','Openindex', 'Closeindex', 'Duration'
                                             'Open', 'Close', 'Profit', 'Direction']) 
-        self.trade_template = {'Opentime': None, 'Closetime': None,'Openindex': None, 'Closeindex': None, 
-                                'Open': None, 'Close':None, 'Profit':None, 'Direction':None}
+        self.trade_template = {'Opentime': None, 'Closetime': None,'Openindex': None, 'Closeindex': None,
+                                 'Duration': None, 'Open': None, 'Close':None, 'Profit':None, 'Direction':None}
         self.trade = self.trade_template.copy()
                     
         # Starting state
@@ -74,40 +74,36 @@ class Environment():
 
             if self.trade['Opentime'] == None:
                 if action == 0 or action == 3:
-                    reward = 0
+                    reward = -1
                     if action == 3:
-                        reward = 0
+                        reward = -5
                 else:
                     self.open_position(action) 
                     position = self.trade['Direction']
                     current_profit = (self.day[self.idx + self.window_size, 7] - self.trade['Open']) * position
-                    reward = 0
+                    reward = +1
         
             else:
                 position = self.trade['Direction']
                 current_profit = (self.day[self.idx + self.window_size, 7] - self.trade['Open']) * position
                 some = current_profit 
-                if some < 0:
-                    some = 0
 
                 if action < 3:
                     if action != 0:
-                        reward = 0
+                        reward = -5
                 else:
                     self.close_position() 
                     profit = self.trade['Profit']
-                    reward = profit
+                    reward = profit*100
                     self.trade = self.trade_template.copy()
             
             done = False
             total_profit = self.tracker['Total_Profit'].iloc[self.idx-1] + profit
             reward += some*10 
             self.tracker.iloc[self.idx, :] = [0, action, position, current_profit, total_profit, reward]
-            if self.verbose == 1:
-                self.news_q.put(('Action', [0, action, position, current_profit, total_profit, reward]))
-                # print(f'Close: {round(self.day[self.idx + self.window_size, 7],2): >7} Action: {action: >2} Position:{position: >5}',
-                #       f' Current Profit: {round(current_profit,2): >7} Total Profit: {round(total_profit,2): >7} Reward: {round(reward,2): >8}',
-                #       f' Epsilon: {round(epsilon,3)}') 
+            if self.verbose > 0:
+                # self.news_q.put(('Action', [0, action, position, current_profit, total_profit, reward]))
+                pass
         
         else:
             if self.trade['Opentime'] != None:
@@ -133,6 +129,7 @@ class Environment():
     def close_position(self):
         self.trade['Closetime'] = self.day[self.window_size + self.idx, 0]
         self.trade['Closeindex'] = self.idx
+        self.trade['Duration'] = self.trade['Closeindex'] - self.trade['Openindex']
         self.trade['Close'] = self.day[self.window_size + self.idx, 7]
         self.trade['Profit'] = ((self.trade['Close'] -\
                                 self.trade['Open']) *\

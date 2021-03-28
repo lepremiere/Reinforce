@@ -87,7 +87,10 @@ class Worker(Process):
                     message = ('Episode_end', [len(self.env.day),
                                                round(np.mean(rewards),2),
                                                round(np.min(rewards),2),
-                                               round(np.max(rewards),2)])
+                                               round(np.max(rewards),2),
+                                               round(np.sum(self.env.trades['Profit']), 2),
+                                               round(np.mean(self.env.trades['Duration']), 2),
+                                               round(len(self.env.trades))])
                     self.news_q.put(message)
 
             elif next_task == 'train':
