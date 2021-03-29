@@ -76,7 +76,7 @@ class Environment():
                 if action == 0 or action == 3:
                     reward = -1
                     if action == 3:
-                        reward = -5
+                        reward = -1
                 else:
                     self.open_position(action) 
                     position = self.trade['Direction']
@@ -90,7 +90,7 @@ class Environment():
 
                 if action < 3:
                     if action != 0:
-                        reward = -5
+                        reward = -1
                 else:
                     self.close_position() 
                     profit = self.trade['Profit']

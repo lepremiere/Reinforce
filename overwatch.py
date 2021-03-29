@@ -37,10 +37,10 @@ class Overwatch(Process):
                     self.counter[0] += 1
 
                     if self.verbose > 0:
-                        print(f'Episode: {self.counter[0]: >3},  Length: {content[0]: >4}',
-                              f'Mean Reward: {mean_reward: >8} ({plus: >9},  {minus: >9}),',
-                              f'Return: {round((mean_return/length)*60*24, 2): >9}/day,'
-                              f'Mean Duration: {mean_duration: >6}, Num Trades: {round((num_trades/length)*60, 2): >3}/hour')
+                        print(f'Episode: {self.counter[0]: >4},  Length: {content[0]: >4}, ',
+                              f'Mean Reward: {mean_reward: >8} ({plus: >9},  {minus: >6}), ',
+                              f'Return: {round((mean_return/length)*60*24, 2): >9}/day, '
+                              f'Mean Duration: {mean_duration: >6}, Num Trades: {num_trades: >4}')
 
                 # Epsilon
                 if message == 'Epsilon':
@@ -57,9 +57,8 @@ class Overwatch(Process):
                 # Loss
                 if message == 'Loss':
                     loss = content
-                    self.plot_qs[6].put([self.counter[3], loss[0], loss[1]])
+                    self.plot_qs[6].put([self.counter[3], loss])
                     self.counter[3] += 1
-                    print('aaa', loss)
 
                 # Movement
                 if message == 'Action':

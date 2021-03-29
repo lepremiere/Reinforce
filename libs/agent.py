@@ -68,7 +68,6 @@ class Agent(Process):
         critic_result = self.model.critic.fit(x=states, y=values,
                                             epochs=1,
                                             verbose=0)
-  
         self.news_q.put(('Loss',[actor_result.history['loss'][-1], critic_result.history['loss'][-1]]))
 
     def run(self):

@@ -78,8 +78,8 @@ def display(name, qs, settings, schedule):
     p22 = l2.addPlot(title='Loss', rowspan=2)
     p22.showGrid(x=True, y=True)
     p22.addLegend(offset=(-10, 10))
-    loss_curve_actor = p22.plot(pen=pg.mkPen((152, 3, 252), width=3), name='Actor')
     loss_curve_critic = p22.plot(pen=pg.mkPen((0, 3, 252), width=3), name='Critic')
+    loss_curve_actor = p22.plot(pen=pg.mkPen((152, 3, 252), width=3), name='Actor')
     p22.setXRange(0, schedule[0]*schedule[2] + 1)
     x_loss_actor = []
     y_loss_actor = []
@@ -90,9 +90,9 @@ def display(name, qs, settings, schedule):
             item = q.get(timeout=0.0)
             q.task_done()
             x_ac.append(item[0])
-            y_ac.append(item[1])
+            y_ac.append(item[1][0])
             x_cr.append(item[0])
-            y_cr.appendy(item[2])
+            y_cr.append(item[1][1])
             curves[0].setData(x_ac,y_ac)
             curves[1].setData(x_cr,y_cr)
         except:
@@ -133,8 +133,8 @@ def display(name, qs, settings, schedule):
     p31 = l3.addPlot(title="Trades")
     p31.showGrid(x=True, y=True)
     p31.addItem(pg.InfiniteLine(pos=0, angle=0, pen=pg.mkPen('w', width=3), movable=False))
-    wins = p31.plot(pen=None, symbolBrush='g', symbolPen='g', symbol='t1', symbolSize=12)
-    losses = p31.plot(pen=None, symbolBrush='r', symbolPen='r', symbol='t', symbolSize=12)
+    wins = p31.plot(pen=None, symbolBrush=(11, 156, 3), symbolPen=(11, 156, 3), symbol='t1', symbolSize=12)
+    losses = p31.plot(pen=None, symbolBrush=(112, 0, 0), symbolPen=(156, 3, 3), symbol='t', symbolSize=12)
     p31.setXRange(0,500)
     x_wins = []
     y_wins = []
