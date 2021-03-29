@@ -11,6 +11,7 @@ class DataGenerator(Process):
         self.sample_mode = 'random'
         self.window_size = settings['window_size']
         self.batch_size = 1
+        self.counter = 0
         self.data_gen_in_q = in_q
         self.data_gen_out_q = out_q
         self.val = val
@@ -76,6 +77,12 @@ class DataGenerator(Process):
                 if sampling:
                     num = np.random.choice(len(self.days), self.batch_size)[0]
                     self.data_gen_out_q.put(self.days[num])
+                else:
+                    if self.counter > self.num-1:
+                        self.counter = 0
+                        print('All days done!')
+                    self.data_gen_out_q.put(self.days[self.counter])
+                    self.counter += 1
             except:
                 if np.sum(self.val[:]) == 0:
                     break

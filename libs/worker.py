@@ -26,6 +26,7 @@ class Worker(Process):
         self.name = name
         self.window_size = settings['window_size']
         self.normalization = settings['normalization']
+        self.gamma = settings['gamma']
         self.skewed = settings['skewed']
         self.verbose = settings['verbose']
         self.data_gen_in_q = data_gen_in_q
@@ -56,31 +57,49 @@ class Worker(Process):
             if next_task == 'play':
                 state = self.env.reset()
                 done = False
-                states = [[state[0]], [state[1]]]
+                actions = []
+                states1 = []
+                states2 = []
+                next_states = []
                 rewards = []
                 advantages = []
                 values = []
+                dones = []
                 
                 while not done:
-                    self.batch_gen_in_q.put(('actions', self.name, state, 0))
-                    action, _, _ = self.pipe.get()
+                    self.batch_gen_in_q.put(('play', self.name, [np.expand_dims(state[0], axis=2), np.expand_dims(state[1], axis=2)], 0))
+                    action, value = self.pipe.get()
                     self.pipe.task_done()
                     next_state, reward, done = self.env.step(action=action, epsilon=0)
-                    self.batch_gen_in_q.put(('values', self.name, state, (action, reward, next_state, done)))
-                    _, advantage, value = self.pipe.get()
-                    self.pipe.task_done()
                     
-                    advantages.append(advantage)
-                    values.append([value])
+                    actions.append(action)
                     rewards.append([reward])
+                    values.append(value)
+                    dones.append(done)
+                    next_states.append(next_state)
+                    states1.append(state[0])
+                    states2.append(state[1])
                     state = next_state
-                    if not done:
-                        states = (np.concatenate([states[0], [state[0]]], axis=0),
-                                  np.concatenate([states[1], [state[1]]], axis=0))
-           
+
+                # Advantages, Values
+                discounted_rewards = [np.sum(0.95**np.arange(len(rewards[i:]))*rewards[i:]) for i in range(len(rewards))]
+                # discounted_rewards = rewards
+                advantages = np.zeros(shape=(len(dones), 4))
+                for i in range(len(dones)):
+                    if dones[i]:
+                        advantages[i][actions[i]] = discounted_rewards[i] - values[i]
+                        values[i][0] = discounted_rewards[i]
+                    else:
+                        advantages[i][actions[i]] = (discounted_rewards[i] + self.gamma * values[i+1]) - values[i]
+                        values[i][0] = discounted_rewards[i] + self.gamma * values[i+1]  
+
                 advantages = np.reshape(advantages, np.shape(advantages))
                 values = np.reshape(values, np.shape(values))
-                self.replay_buffer.add(states, advantages, values, np.mean(rewards))
+                states1 = np.expand_dims(states1, axis=3)
+                states2 = np.expand_dims(states2, axis=3)
+                # for i in range(len(dones)):
+                #     if 
+                self.replay_buffer.add([states1, states2], advantages, values, np.mean(discounted_rewards))
                 
                 if self.verbose == 1:
                     # Overwatch 

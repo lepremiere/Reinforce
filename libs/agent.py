@@ -14,7 +14,7 @@ class Agent(Process):
         self.num_observations = tuple(self.env.observation_space_n)
         self.num_actions = self.env.action_space_n
         self.num_values = 1
-        self.game_size =  (self.env.window_size, len(self.env.tracker_list))
+        self.game_size =  (self.env.window_size, len(self.env.tracker_list), 1)
         self.gamma = settings['gamma']
         self.epsilon = settings['epsilon'][0]
         self.temp_epsilon = self.epsilon
@@ -43,30 +43,18 @@ class Agent(Process):
         
         return actions
     
-    def get_values(self, ns, states, val_stuff):
-        actions, rewards, next_states, dones = val_stuff
-        values = np.zeros((len(ns), self.num_values))
-        advantages = np.zeros((len(ns), self.num_actions))
+    def get_values(self, states):
         values = get_value(self.model.critic(states, training=False))
-        next_values = get_value(self.model.critic(next_states, training=False))
 
-        for i in range(len(dones)):
-            if dones[i]:
-                advantages[i][actions[i]] = rewards[i] - values[i]
-                values[i][0] = rewards[i]
-            else:
-                advantages[i][actions[i]] = (rewards[i] + self.gamma * next_values[i]) - values[i]
-                values[i][0] = rewards[i] + self.gamma * next_values[i]   
-
-        return advantages, values
+        return  values
     
     def train(self, states, val_stuff):
         advantages, values = val_stuff
         actor_result = self.model.actor.fit(x=states, y=advantages,
-                                            epochs=1,
+                                            epochs=3,
                                             verbose=0)
         critic_result = self.model.critic.fit(x=states, y=values,
-                                            epochs=1,
+                                            epochs=3,
                                             verbose=0)
         self.news_q.put(('Loss',[actor_result.history['loss'][-1], critic_result.history['loss'][-1]]))
 
@@ -77,6 +65,7 @@ class Agent(Process):
                     self.settings)
         if self.verbose > 0:
             print('Agent ready!')
+
         while True:
             type, ns, states, val_stuff = self.agent_in_q.get()
             self.agent_in_q.task_done()
@@ -85,13 +74,10 @@ class Agent(Process):
                 break
 
             # Switch between purposes
-            if type == 'actions':
+            if type == 'play':
                 actions = self.get_actions(ns, states)
-                self.distributor_in_q.put((ns, actions, np.zeros(shape=(len(ns))), np.zeros(shape=(len(ns)))))    
-
-            if type == 'values':
-                advantages, values = self.get_values(ns, states, val_stuff)
-                self.distributor_in_q.put((ns, np.zeros(shape=(len(ns))), advantages, values))    
+                values = self.get_values(states)
+                self.distributor_in_q.put((ns, actions, values))
 
             if type == 'train':
                 self.train(states, val_stuff)

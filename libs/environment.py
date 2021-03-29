@@ -13,12 +13,13 @@ class Environment():
         self.verbose = settings['verbose']
         self.window_size = settings['window_size']
         self.normalization = settings['normalization']
+        self.random_days = settings['random_days']
         self.news_q = news_q
         self.data_gen_in_q = in_q
         self.data_gen_out_q = out_q
-        self.data_gen_in_q.put(True)
+        self.data_gen_in_q.put(self.random_days)
         sample = self.data_gen_out_q.get()
-        self.observation_space_n = [self.window_size, np.shape(sample)[1]-1] # -1 bc date is not passed
+        self.observation_space_n = [self.window_size, np.shape(sample)[1]-1, 1] # -1 bc date is not passed
         self.action_space = [0,1,2,3]
         self.action_space_n = len(self.action_space)
 
@@ -31,7 +32,7 @@ class Environment():
                             'Reward': 0}
 ####################################################################################
     def reset(self):
-        self.data_gen_in_q.put(True)
+        self.data_gen_in_q.put(self.random_days)
         self.day = self.data_gen_out_q.get()
         self.len_day = len(self.day) -self.window_size
 
@@ -74,7 +75,7 @@ class Environment():
 
             if self.trade['Opentime'] == None:
                 if action == 0 or action == 3:
-                    reward = -1
+                    reward = 0
                     if action == 3:
                         reward = -1
                 else:
@@ -86,7 +87,7 @@ class Environment():
             else:
                 position = self.trade['Direction']
                 current_profit = (self.day[self.idx + self.window_size, 7] - self.trade['Open']) * position
-                some = current_profit 
+                some = current_profit - (self.day[self.idx + self.window_size-1, 7] - self.trade['Open']) * position
 
                 if action < 3:
                     if action != 0:
@@ -94,12 +95,12 @@ class Environment():
                 else:
                     self.close_position() 
                     profit = self.trade['Profit']
-                    reward = profit*100
+                    reward = profit
                     self.trade = self.trade_template.copy()
             
             done = False
             total_profit = self.tracker['Total_Profit'].iloc[self.idx-1] + profit
-            reward += some*10 
+            reward += some*10
             self.tracker.iloc[self.idx, :] = [0, action, position, current_profit, total_profit, reward]
             if self.verbose > 0:
                 # self.news_q.put(('Action', [0, action, position, current_profit, total_profit, reward]))

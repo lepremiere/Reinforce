@@ -55,7 +55,7 @@ def display(name, qs, settings, schedule):
     y_return = []
     timer2 = QtCore.QTimer()
     timer2.timeout.connect(lambda: updateCurve(return_curve,qs[1],x_return,y_return))
-    timer2.start(10)
+    timer2.start(50)
 
     l.nextCol()
 
@@ -72,7 +72,7 @@ def display(name, qs, settings, schedule):
     y_epsilon = []
     timer3 = QtCore.QTimer()
     timer3.timeout.connect(lambda: updateCurve(epsilon_cuve,qs[4],x_epsilon,y_epsilon))
-    timer3.start(10)
+    timer3.start(50)
     
     # Loss
     p22 = l2.addPlot(title='Loss', rowspan=2)
@@ -100,7 +100,7 @@ def display(name, qs, settings, schedule):
     timer4 = QtCore.QTimer()
     timer4.timeout.connect(lambda: updateLoss([loss_curve_actor, loss_curve_critic],qs[6],
                                                 x_loss_actor,y_loss_actor,x_loss_crtitc,y_loss_critic))
-    timer4.start(10)
+    timer4.start(50)
 
     p23 = l2.addPlot(title='Number of Trades per Hour')
     p23.showGrid(x=True, y=True)
@@ -110,7 +110,7 @@ def display(name, qs, settings, schedule):
     y_nt = []
     timer5 = QtCore.QTimer()
     timer5.timeout.connect(lambda: updateCurve(nt_cuve,qs[3],x_nt,y_nt))
-    timer5.start(10)
+    timer5.start(50)
 
     # Action Distribution
     l2.nextRow()
@@ -126,7 +126,7 @@ def display(name, qs, settings, schedule):
     y_td = []
     timer6 = QtCore.QTimer()
     timer6.timeout.connect(lambda: updateCurve(td_curve,qs[2],x_td,y_td))
-    timer6.start(10)
+    timer6.start(50)
 
     # Trades
     l3 = l.addLayout(col=0, row=3, colspan=4, rowspan=1)
