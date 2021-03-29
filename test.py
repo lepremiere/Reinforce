@@ -29,7 +29,7 @@ if __name__ == "__main__":
               'MinLot': 0.1,
              }
 
-    schedule = [200, 20, 4]
+    schedule = [100, 20, 4]
 
     val = Array('i', [1 for _ in range(settings['num_workers'])])
     news_in_q = JoinableQueue()

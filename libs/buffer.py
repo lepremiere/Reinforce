@@ -18,7 +18,7 @@ class ReplayBuffer():
         if len(self.memory) > self.buffer_size:
             self.memory.pop(0)
             self.rewards.pop(0)
-        # print(e)
+        print(len(self.memory))
 
     def get_samples(self, skewed=False):
         if skewed:

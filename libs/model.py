@@ -35,35 +35,35 @@ class NN(Model):
         x = MaxPool2D(pool_size=3, strides=2, padding='same')(x)
 
         # ResNet Block
-        b11 = Conv1D(64, kernel_size=1, strides=2, padding='same')(x)
+        b11 = Conv1D(32, kernel_size=1, strides=2, padding='same')(x)
         b11 = BatchNormalization()(b11)
         b11 = Activation('relu')(b11)
-        b11 = Conv1D(64, kernel_size=3, strides=1, padding='same')(b11)
+        b11 = Conv1D(32, kernel_size=3, strides=1, padding='same')(b11)
         b11 = BatchNormalization()(b11)
         b11 = Activation('relu')(b11)
-        b11 = Conv1D(64, kernel_size=1, strides=1, padding='same')(b11)
+        b11 = Conv1D(32, kernel_size=1, strides=1, padding='same')(b11)
         b11 = BatchNormalization()(b11)
-        b11 = Add()([b11, Conv1D(64, kernel_size=1, strides=2)(x)])
+        b11 = Add()([b11, Conv1D(32, kernel_size=1, strides=2)(x)])
 
         b11 = Activation('relu')(b11)
 
         # ResNet Block
-        b12 = Conv1D(128, kernel_size=3, strides=2, padding='same')(b11)
+        b12 = Conv1D(64, kernel_size=3, strides=2, padding='same')(b11)
         b12 = BatchNormalization()(b12)
         b12 = Activation('relu')(b12)
-        b12 = Conv1D(128, kernel_size=3, strides=1, padding='same')(b12)
+        b12 = Conv1D(64, kernel_size=3, strides=1, padding='same')(b12)
         b12 = BatchNormalization()(b12)
         b12 = Activation('relu')(b12)
-        b12 = Conv1D(128, kernel_size=1, strides=1, padding='same')(b12)
+        b12 = Conv1D(64, kernel_size=1, strides=1, padding='same')(b12)
         b12 = BatchNormalization()(b12)
         b12 = Activation('relu')(b12)
-        b12 = Add()([b12, Conv1D(128, kernel_size=1, strides=2)(b11)])
+        b12 = Add()([b12, Conv1D(64, kernel_size=1, strides=2)(b11)])
 
         b12 = Activation('relu')(b12)
 
         # Output Block
         x = GlobalAvgPool2D()(b12)
-        x = Dense(512)(x)
+        x = Dense(64)(x)
         x = Flatten()(x)
 
          # Input Block
@@ -73,36 +73,36 @@ class NN(Model):
         w = MaxPool2D(pool_size=3, strides=2, padding='same')(w)
 
         # ResNet Block
-        b21 = Conv1D(64, kernel_size=3, strides=2, padding='same')(w)
+        b21 = Conv1D(32, kernel_size=3, strides=2, padding='same')(w)
         b21 = BatchNormalization()(b21)
         b21 = Activation('relu')(b21)
-        b21 = Conv1D(64, kernel_size=3, strides=1, padding='same')(b21)
+        b21 = Conv1D(32, kernel_size=3, strides=1, padding='same')(b21)
         b21 = BatchNormalization()(b21)
         b21 = Activation('relu')(b21)
-        b21 = Conv1D(64, kernel_size=1, strides=1, padding='same')(b21)
+        b21 = Conv1D(32, kernel_size=1, strides=1, padding='same')(b21)
         b21 = BatchNormalization()(b21)
         b21 = Activation('relu')(b21)
-        b21 = Add()([b21, Conv1D(64, kernel_size=1, strides=2)(w)])
+        b21 = Add()([b21, Conv1D(32, kernel_size=1, strides=2)(w)])
 
         b21 = Activation('relu')(b21)
 
         # ResNet Block
-        b22 = Conv1D(128, kernel_size=3, strides=2, padding='same')(b21)
+        b22 = Conv1D(64, kernel_size=3, strides=2, padding='same')(b21)
         b22 = BatchNormalization()(b22)
         b22 = Activation('relu')(b22)
-        b22 = Conv1D(128, kernel_size=3, strides=1, padding='same')(b22)
+        b22 = Conv1D(64, kernel_size=3, strides=1, padding='same')(b22)
         b22 = BatchNormalization()(b22)
         b22 = Activation('relu')(b22)
-        b22 = Conv1D(128, kernel_size=1, strides=1, padding='same')(b22)
+        b22 = Conv1D(64, kernel_size=1, strides=1, padding='same')(b22)
         b22 = BatchNormalization()(b22)
         b22 = Activation('relu')(b22)
-        b22 = Add()([b22, Conv1D(128, kernel_size=1, strides=2)(b21)])
+        b22 = Add()([b22, Conv1D(64, kernel_size=1, strides=2)(b21)])
 
         b22 = Activation('relu')(b22)
 
         # Output Block
         w = GlobalAvgPool2D()(b22)
-        w = Dense(512)(w)
+        w = Dense(64)(w)
         w = Flatten()(w)
 
         out = Concatenate()([w,x])
