@@ -36,7 +36,7 @@ def display(name, qs, settings, schedule):
     p11 = l1.addPlot(title="Reward and Discounted Rewards", colspan=2)
     p11.showGrid(x=True, y=True)
     p11.addItem(pg.InfiniteLine(pos=0, angle=0, pen=pg.mkPen('w', width=3), movable=False))
-    reward_curve = p11.plot(pen=pg.mkPen((252, 152, 3), width=3), name='Reward')
+    reward_curve = p11.plot(pen=pg.mkPen((252, 152, 3), width=2), name='Reward')
     p11.setXRange(0, schedule[0]*schedule[1] + settings['num_workers'])
     x_reward = []
     y_reward = []
@@ -49,7 +49,7 @@ def display(name, qs, settings, schedule):
     p12 = l1.addPlot(title='Return per 24h')
     p12.showGrid(x=True, y=True)
     p12.addItem(pg.InfiniteLine(pos=0, angle=0, pen=pg.mkPen('w', width=3), movable=False))
-    return_curve = p12.plot(pen=pg.mkPen((235, 64, 52), width=3), name='Reward')
+    return_curve = p12.plot(pen=pg.mkPen((235, 64, 52), width=2), name='Reward')
     p12.setXRange(0, schedule[0]*schedule[1] + settings['num_workers'])
     x_return = []
     y_return = []
@@ -104,7 +104,7 @@ def display(name, qs, settings, schedule):
 
     p23 = l2.addPlot(title='Number of Trades per Hour')
     p23.showGrid(x=True, y=True)
-    nt_cuve = p23.plot(pen=pg.mkPen((3, 50, 252), width=3), name='Number of Trades')
+    nt_cuve = p23.plot(pen=pg.mkPen((3, 50, 252), width=2), name='Number of Trades')
     p23.setXRange(0, schedule[0]*schedule[1] + settings['num_workers'])
     x_nt = []
     y_nt = []
@@ -120,7 +120,7 @@ def display(name, qs, settings, schedule):
     # Average Trade Duration
     p25 = l2.addPlot(title='Average Trade Duration')
     p25.showGrid(x=True, y=True)
-    td_curve = p25.plot(pen=pg.mkPen((3, 219, 252), width=3), name='Trade Duration')
+    td_curve = p25.plot(pen=pg.mkPen((3, 219, 252), width=2), name='Trade Duration')
     p25.setXRange(0, schedule[0]*schedule[1] + settings['num_workers'])
     x_td = []
     y_td = []
@@ -184,6 +184,23 @@ def display(name, qs, settings, schedule):
             QtGui.QApplication.instance().exec_()
 
 if __name__ == '__main__':
+    settings ={'symbol': 'SP500_M5_TA',
+                'fraction': [1, 1e5],
+                'window_size': 100,
+                'num_workers': 30,
+                'buffer_size': 40,
+                'buffer_batch_size': 1,
+                'sort_buffer': True,
+                'skewed_memory': True,
+                'shuffle_days': True,
+                'normalization': False,
+                'training_epochs': 5,
+                'gamma': 0.99,
+                'epsilon': [0.99, 0.999, 0.001],
+                'lr_actor': 1e-5,
+                'lr_critic': 1e-5,
+                'verbose': 1,
+                }
     schedule = [1,10,5]
-    display('abc', [[1],[2],[3],[4]], schedule)
+    display('abc', [[1],[2],[3],[4],[5],[6]], settings, schedule)
 

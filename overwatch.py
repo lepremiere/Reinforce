@@ -38,9 +38,9 @@ class Overwatch(Process):
 
                     if self.verbose > 0:
                         print(f'Episode: {self.counter[0]: >4},  Length: {content[0]: >4}, ',
-                              f'Mean Reward: {mean_reward: >8} ({plus: >9},  {minus: >6}), ',
-                              f'Return: {round((mean_return/length)*60*24, 2): >9}/day, '
-                              f'Mean Duration: {mean_duration: >6}, Num Trades: {num_trades: >4}')
+                              f'Total Reward: {mean_reward: >7} ({plus: >7},  {minus: >5}), ',
+                              f'Return: {round((mean_return/length)*60*24, 2): >7}/day, '
+                              f'Mean Duration: {mean_duration: >5}, Num Trades: {num_trades: >3}')
 
                 # Epsilon
                 if message == 'Epsilon':

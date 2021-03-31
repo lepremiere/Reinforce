@@ -11,10 +11,10 @@ class Agent(Process):
         self.agent_in_q = in_q
         self.distributor_in_q = out_q
         self.news_q = news_q
-        self.num_observations = tuple(self.env.observation_space_n)
+        self.num_observations = (self.env.observation_space[0], self.env.observation_space[1])
         self.num_actions = self.env.action_space_n
         self.num_values = 1
-        self.game_size =  (self.env.window_size, len(self.env.tracker_list), 1)
+        self.game_size =  (len(self.env.tracker_list),)
         self.gamma = settings['gamma']
         self.epsilon = settings['epsilon'][0]
         self.temp_epsilon = self.epsilon
@@ -22,6 +22,7 @@ class Agent(Process):
         self.epsilon_limit = settings['epsilon'][2]
         self.lr_actor = settings['lr_actor']
         self.lr_critic = settings['lr_critic']
+        self.epochs = settings['training_epochs']
         self.best_result = 0
         self.val = val
         self.settings = settings
@@ -32,7 +33,7 @@ class Agent(Process):
         if np.random.rand(1,1) > self.epsilon:
             policy = self.model.actor(inputs=states, training=False)
         else:
-            policy = [[0.6,0.1,0.1,0.2] for _ in range(len(ns))]
+            policy = [[0.25,0.25,0.25,0.25] for _ in range(len(ns))]
             if self.epsilon > self.epsilon_limit:
                 self.epsilon *= self.epsilon_decay  
                 if self.temp_epsilon - self.epsilon >= 0.01:
@@ -45,18 +46,20 @@ class Agent(Process):
     
     def get_values(self, states):
         values = get_value(self.model.critic(states, training=False))
-
         return  values
     
     def train(self, states, val_stuff):
         advantages, values = val_stuff
         actor_result = self.model.actor.fit(x=states, y=advantages,
-                                            epochs=3,
+                                            epochs=self.epochs,
                                             verbose=0)
         critic_result = self.model.critic.fit(x=states, y=values,
-                                            epochs=3,
+                                            epochs=self.epochs,
                                             verbose=0)
         self.news_q.put(('Loss',[actor_result.history['loss'][-1], critic_result.history['loss'][-1]]))
+        del advantages
+        del states
+        del val_stuff
 
     def run(self):
         self.model = NN(self.num_observations, self.num_actions,
@@ -78,10 +81,14 @@ class Agent(Process):
                 actions = self.get_actions(ns, states)
                 values = self.get_values(states)
                 self.distributor_in_q.put((ns, actions, values))
+                del actions
+                del values
+                del ns
 
             if type == 'train':
                 self.train(states, val_stuff)
-                
+                del states
+                del val_stuff
                 # self.model.actor.save('./1_model/actor.h5')
                 # self.model.critic.save('./1_model/critic.h5')
 

@@ -32,21 +32,25 @@ class Controller(Process):
         self.agent_in_q = mp.JoinableQueue()
         self.data_gen_in_q = mp.JoinableQueue()
         self.data_gen_out_q = mp.JoinableQueue()
+        self.buffer_in_q = mp.JoinableQueue()
+        self.buffer_out_q = mp.JoinableQueue()
         self.batch_gen_in_q = mp.JoinableQueue()
         self.distributor_in_q = mp.JoinableQueue()
         self.pipes = [mp.JoinableQueue() for _ in range(self.num_workers)]
         self.news_q = news_q
 
         # Processes
-        self.gen = DataGenerator(in_q=self.data_gen_in_q, out_q=self.data_gen_out_q, val=self.val, settings=self.settings).start()
-        self.batch_gen = BatchGenerator(in_q=self.batch_gen_in_q, out_q=self.agent_in_q, val=self.val, settings=self.settings)
-        self.distributor = Distributor(in_q=self.distributor_in_q, pipes=self.pipes, val=self.val, settings=self.settings)
-        self.buffer = ReplayBuffer(self.settings)
-        self.env = Environment(in_q=self.data_gen_in_q, out_q=self.data_gen_out_q, news_q=self.news_q, market=self.market, settings=self.settings)
-        self.agent = Agent(env=self.env, in_q=self.agent_in_q, out_q=self.distributor_in_q, news_q=self.news_q, val=self.val, settings=self.settings)
+        self.gen =          DataGenerator(  in_q=self.data_gen_in_q,    out_q=self.data_gen_out_q,      news_q=self.news_q, val=self.val, settings=self.settings).start()
+        self.batch_gen =    BatchGenerator( in_q=self.batch_gen_in_q,   out_q=self.agent_in_q,          news_q=self.news_q, val=self.val, settings=self.settings)
+        self.distributor =  Distributor(    in_q=self.distributor_in_q, pipes=self.pipes,               news_q=self.news_q, val=self.val, settings=self.settings)
+        self.buffer =       ReplayBuffer(   in_q=self.buffer_in_q,      out_q=self.buffer_out_q,        news_q=self.news_q, val=self.val, settings=self.settings).start()
+        self.env =          Environment(    in_q=self.data_gen_in_q,    out_q=self.data_gen_out_q,      news_q=self.news_q, market=self.market, settings=self.settings)
+        self.agent =    Agent(env=self.env, in_q=self.agent_in_q,       out_q=self.distributor_in_q,    news_q=self.news_q, val=self.val, settings=self.settings)
         self.workers = [Worker(name=str(i),
                         data_gen_in_q=self.data_gen_in_q,
                         data_gen_out_q=self.data_gen_out_q,
+                        buffer_in_q=self.buffer_in_q,
+                        buffer_out_q=self.buffer_out_q,
                         task_q=self.task_q,
                         agent_in_q=self.agent_in_q,
                         batch_gen_in_q=self.batch_gen_in_q,

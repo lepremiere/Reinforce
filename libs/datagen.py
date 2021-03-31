@@ -3,18 +3,19 @@ import pandas as pd
 from multiprocessing import Process
 
 class DataGenerator(Process):
-    def __init__(self, in_q, out_q, val, settings) -> None:
+    def __init__(self, in_q, out_q, news_q, val, settings) -> None:
         Process.__init__(self)
+        self.data_gen_in_q = in_q
+        self.data_gen_out_q = out_q
+        self.news_q = news_q
+        self.val = val
         self.symbol = settings['symbol']
         self.fraction = settings['fraction']
         self.verbose = settings['verbose']
-        self.sample_mode = 'random'
+        self.shuffle_days = settings['shuffle_days']
         self.window_size = settings['window_size']
         self.batch_size = 1
         self.counter = 0
-        self.data_gen_in_q = in_q
-        self.data_gen_out_q = out_q
-        self.val = val
         self.df = pd.read_csv(r"D:/Data/" + self.symbol  + ".csv",
                                 header=0,
                                 skiprows=range(1,int(self.fraction [0])),
@@ -28,7 +29,7 @@ class DataGenerator(Process):
         # Check Indicators and pop NaNs
         n, k = self.check_columns()
         self.price_dependent = np.concatenate([self.price_dependent,k], axis=0)
-        self.df = self.df.iloc[n:,:]
+        self.df = self.df.iloc[int(n):,:]
         self.df.iloc[:,1:] = self.df.iloc[:, 1:].astype(np.float32)
         self.df = self.df.reset_index(drop=True)
 
@@ -73,8 +74,9 @@ class DataGenerator(Process):
     def run(self):
         while True:
             try:
-                sampling = self.data_gen_in_q.get(timeout=0.1)
-                if sampling:
+                self.data_gen_in_q.get(timeout=0.1)
+                self.data_gen_in_q.task_done()
+                if  self.shuffle_days:
                     num = np.random.choice(len(self.days), self.batch_size)[0]
                     self.data_gen_out_q.put(self.days[num])
                 else:

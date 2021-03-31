@@ -5,20 +5,21 @@ from overwatch import Overwatch
 
 if __name__ == "__main__":
     t = time.time()
-    settings ={'symbol': 'SP500_M1_TA',
-                'fraction': [1e6, 1e5],
+    settings ={'symbol': 'SP500_M5_TA',
+                'fraction': [1, 1e4],
                 'window_size': 100,
-                'num_workers': 20,
-                'buffer_size': 100,
+                'num_workers': 24,
+                'buffer_size': 80,
                 'buffer_batch_size': 1,
-                'random_days': False,
+                'sort_buffer': True,
+                'skewed_memory': True,
+                'shuffle_days': True,
                 'normalization': False,
-                'skewed': True,
-                'training_epochs': 5,
+                'training_epochs': 2,
                 'gamma': 0.99,
-                'epsilon': [0.99, 0.999, 0.0001],
-                'lr_actor': 1e-8,
-                'lr_critic': 2e-8,
+                'epsilon': [0.0, 0.999, 0.001],
+                'lr_actor': 1e-5,
+                'lr_critic': 1e-5,
                 'verbose': 1,
                 'start_time': t,
                 }
@@ -29,7 +30,7 @@ if __name__ == "__main__":
               'MinLot': 0.1,
              }
 
-    schedule = [100, 20, 4]
+    schedule = [100, 40, 5]
 
     val = Array('i', [1 for _ in range(settings['num_workers'])])
     news_in_q = JoinableQueue()
