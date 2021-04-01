@@ -98,15 +98,19 @@ class Worker(Process):
                 advantages = np.reshape(advantages, np.shape(advantages))
 
                 self.buffer_in_q.put(('add_sample', ((states1, states2), advantages, values, np.mean(discounted_rewards))))
-
+                
                 if self.verbose == 1:
                     # Overwatch 
+                    try:
+                        duration = self.env.trades['Duration']
+                    except:
+                        duration = 0
                     message = ('Episode_end', [len(self.env.day),
                                                round(np.sum(discounted_rewards),2),
                                                round(np.min(discounted_rewards),2),
                                                round(np.max(discounted_rewards),2),
                                                round(np.sum(self.env.trades['Profit']), 2),
-                                               round(np.mean(self.env.trades['Duration']), 2),
+                                               round(np.mean(duration), 2),
                                                round(len(self.env.trades))])
                     self.news_q.put(message)
                 del states1
@@ -137,7 +141,10 @@ class Worker(Process):
         # Close Profit on Open position state
         for i in range(len(self.env.trades)):
             idx, idx2 = self.env.trades['Openindex'].iloc[i], self.env.trades['Closeindex'].iloc[i]
-            rewards[idx] += tracker['Current_Profit'].iloc[idx2]
+            if self.env.trades['Duration'].iloc[i] < 6 and self.env.trades['Profit'].iloc[i] < 0:
+                rewards[idx] += tracker['Current_Profit'].iloc[idx2] - 100
+            elif self.env.trades['Duration'].iloc[i] < 10 and self.env.trades['Profit'].iloc[i] > 50:
+                rewards[idx] += tracker['Current_Profit'].iloc[idx2] + 100
         
         # Debug
         # a = pd.DataFrame(data={'rewards': rewards, 'actions': actions})
@@ -145,7 +152,7 @@ class Worker(Process):
         # b.to_csv('./2_storage/tracker.csv')        
         # a.to_csv('./2_storage/action_rewards.csv')       
 
-        # discounted_rewards = [np.sum(0.9**np.arange(len(rewards[i:]))*rewards[i:]) for i in range(len(rewards))]
+        discounted_rewards = [np.sum(0.9**np.arange(len(rewards[i:]))*rewards[i:]) for i in range(len(rewards))]
         discounted_rewards = rewards
         
         return discounted_rewards

@@ -74,6 +74,8 @@ class Environment():
             if self.trade['Opentime'] == None:
                 if action == 0 or action == 3:
                     reward = 0
+                    if action == 3:
+                        reward = -10
                 else:
                     self.open_position(action) 
                     position = self.trade['Direction']
@@ -87,7 +89,7 @@ class Environment():
 
                 if action < 3:
                     if action > 0:
-                        reward = -1
+                        reward = -10
                 else:
                     self.close_position() 
                     profit = self.trade['Profit']

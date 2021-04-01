@@ -84,7 +84,6 @@ class Controller(Process):
               ', Training episodes: ', schedule[2])
 
         [self.task_q.put('play') for _ in range(self.num_workers)]
-        self.task_q.put('train')
         for _ in range(schedule[0]):
             for _ in range(schedule[1]):
                 self.task_q.put('play')

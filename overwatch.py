@@ -28,10 +28,10 @@ class Overwatch(Process):
 
                 # Episode end
                 if message == 'Episode_end':
-                    length, mean_reward, plus, minus, mean_return, mean_duration, num_trades = content
+                    length, mean_reward, plus, minus, total_return, mean_duration, num_trades = content
                     self.samples += length
                     self.plot_qs[0].put([self.counter[0], mean_reward]) 
-                    self.plot_qs[1].put([self.counter[0], (mean_return/length)*60*24])
+                    self.plot_qs[1].put([self.counter[0], (total_return/length)*60*24])
                     self.plot_qs[2].put([self.counter[0], mean_duration])
                     self.plot_qs[3].put([self.counter[0], (num_trades/length)*60])
                     self.counter[0] += 1
@@ -39,7 +39,7 @@ class Overwatch(Process):
                     if self.verbose > 0:
                         print(f'Episode: {self.counter[0]: >4},  Length: {content[0]: >4}, ',
                               f'Total Reward: {mean_reward: >7} ({plus: >7},  {minus: >5}), ',
-                              f'Return: {round((mean_return/length)*60*24, 2): >7}/day, '
+                              f'Return: {round(total_return, 2): >7}/day, '
                               f'Mean Duration: {mean_duration: >5}, Num Trades: {num_trades: >3}')
 
                 # Epsilon
