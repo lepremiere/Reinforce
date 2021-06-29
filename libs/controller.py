@@ -40,12 +40,12 @@ class Controller(Process):
         self.news_q = news_q
 
         # Processes
-        self.gen =          DataGenerator(  in_q=self.data_gen_in_q,    out_q=self.data_gen_out_q,      news_q=self.news_q, val=self.val, settings=self.settings).start()
-        self.batch_gen =    BatchGenerator( in_q=self.batch_gen_in_q,   out_q=self.agent_in_q,          news_q=self.news_q, val=self.val, settings=self.settings)
-        self.distributor =  Distributor(    in_q=self.distributor_in_q, pipes=self.pipes,               news_q=self.news_q, val=self.val, settings=self.settings)
-        self.buffer =       ReplayBuffer(   in_q=self.buffer_in_q,      out_q=self.buffer_out_q,        news_q=self.news_q, val=self.val, settings=self.settings).start()
+        self.gen =          DataGenerator(  in_q=self.data_gen_in_q,    out_q=self.data_gen_out_q,      news_q=self.news_q, val=self.val,       settings=self.settings).start()
+        self.batch_gen =    BatchGenerator( in_q=self.batch_gen_in_q,   out_q=self.agent_in_q,          news_q=self.news_q, val=self.val,       settings=self.settings)
+        self.distributor =  Distributor(    in_q=self.distributor_in_q, pipes=self.pipes,               news_q=self.news_q, val=self.val,       settings=self.settings)
+        self.buffer =       ReplayBuffer(   in_q=self.buffer_in_q,      out_q=self.buffer_out_q,        news_q=self.news_q, val=self.val,       settings=self.settings).start()
         self.env =          Environment(    in_q=self.data_gen_in_q,    out_q=self.data_gen_out_q,      news_q=self.news_q, market=self.market, settings=self.settings)
-        self.agent =    Agent(env=self.env, in_q=self.agent_in_q,       out_q=self.distributor_in_q,    news_q=self.news_q, val=self.val, settings=self.settings)
+        self.agent =    Agent(env=self.env, in_q=self.agent_in_q,       out_q=self.distributor_in_q,    news_q=self.news_q, val=self.val,       settings=self.settings)
         self.workers = [Worker(name=str(i),
                         data_gen_in_q=self.data_gen_in_q,
                         data_gen_out_q=self.data_gen_out_q,
@@ -62,8 +62,7 @@ class Controller(Process):
                         settings=self.settings) \
                     for i in range(self.num_workers)]
 
-        #################################################
-        # Start and terminate processes
+        ## Start and terminate processes
         self.agent.daemon = True
         self.distributor.daemon = True
         self.batch_gen.daemon = True

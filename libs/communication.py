@@ -40,7 +40,7 @@ class BatchGenerator(Process):
 
             except: 
                 playing_worker = np.sum([v == 1 for v in self.val])
-                number = playing_worker
+                number = playing_worker/2
 
                 if len(ns_actions) >= number:
                     states1 = np.reshape(states1, np.shape(states1))

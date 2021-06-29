@@ -70,9 +70,9 @@ class Worker(Process):
                     action, value = self.pipe.get()
                     self.pipe.task_done()
                     next_state, reward, done = self.env.step(action=action)
-                    
+
                     actions.append(action)
-                    rewards.append([reward])
+                    rewards.append(reward)
                     values.append(value)
                     dones.append(done)
                     states1.append(state[0])
@@ -81,12 +81,12 @@ class Worker(Process):
 
                 # Discounted rewards
                 discounted_rewards = self.discount_reward(actions, rewards, dones, values, self.env.tracker)
+                advantages = np.zeros(shape=(len(dones), 3))
 
-                advantages = np.zeros(shape=(len(dones), 4))
                 for i in range(len(dones)):
                     if dones[i]:
                         advantages[i][actions[i]] = discounted_rewards[i] - values[i]
-                        values[i][0] = discounted_rewards[i][0]
+                        values[i][0] = discounted_rewards[i]
                     else:
                         advantages[i][actions[i]] = (discounted_rewards[i] + self.gamma * values[i+1]) - values[i]
                         values[i][0] = discounted_rewards[i] + self.gamma * values[i+1]  
@@ -96,7 +96,6 @@ class Worker(Process):
                 states2 = np.reshape(states2, np.shape(states2))
                 values = np.reshape(values, np.shape(values))
                 advantages = np.reshape(advantages, np.shape(advantages))
-
                 self.buffer_in_q.put(('add_sample', ((states1, states2), advantages, values, np.mean(discounted_rewards))))
                 
                 if self.verbose == 1:
@@ -139,20 +138,20 @@ class Worker(Process):
 
     def discount_reward(self, actions, rewards, dones, values, tracker):
         # Close Profit on Open position state
-        for i in range(len(self.env.trades)):
-            idx, idx2 = self.env.trades['Openindex'].iloc[i], self.env.trades['Closeindex'].iloc[i]
-            if self.env.trades['Duration'].iloc[i] < 6 and self.env.trades['Profit'].iloc[i] < 0:
-                rewards[idx] += tracker['Current_Profit'].iloc[idx2] - 100
-            elif self.env.trades['Duration'].iloc[i] < 10 and self.env.trades['Profit'].iloc[i] > 50:
-                rewards[idx] += tracker['Current_Profit'].iloc[idx2] + 100
-        
+        # for i in range(len(self.env.trades)):
+        #     idx, idx2 = self.env.trades['Openindex'].iloc[i], self.env.trades['Closeindex'].iloc[i]
+            # # if self.env.trades['Duration'].iloc[i] < 6 and self.env.trades['Profit'].iloc[i] < 0:
+            # #     rewards[idx] += tracker['Current_Profit'].iloc[idx2] - 100
+            # # elif self.env.trades['Duration'].iloc[i] < 10 and self.env.trades['Profit'].iloc[i] > 50:
+            # #     rewards[idx] += tracker['Current_Profit'].iloc[idx2] + 100
+            # rewards[idx][actions[i]] += tracker['Current_Profit'].iloc[idx2]
         # Debug
         # a = pd.DataFrame(data={'rewards': rewards, 'actions': actions})
         # b = tracker
         # b.to_csv('./2_storage/tracker.csv')        
         # a.to_csv('./2_storage/action_rewards.csv')       
 
-        discounted_rewards = [np.sum(0.9**np.arange(len(rewards[i:]))*rewards[i:]) for i in range(len(rewards))]
+        # discounted_rewards = [np.sum(0.9**np.arange(len(rewards[i:]))*rewards[i:]) for i in range(len(rewards))]
         discounted_rewards = rewards
         
         return discounted_rewards

@@ -28,12 +28,12 @@ def display(name, qs, settings, schedule):
             curve.setData(x,y)
         except:
             pass
-
+    
     # Win Metrics
-    l1 = l.addLayout(col=0, row=0, colspan=1, rowspan=1)
+    l1 = l.addLayout(rowspan=1)
 
     # Reward
-    p11 = l1.addPlot(title="Reward and Discounted Rewards", colspan=2)
+    p11 = l1.addPlot(title="Rewards")
     p11.showGrid(x=True, y=True)
     p11.addItem(pg.InfiniteLine(pos=0, angle=0, pen=pg.mkPen('w', width=3), movable=False))
     reward_curve = p11.plot(pen=pg.mkPen((252, 152, 3), width=2), name='Reward')
@@ -44,23 +44,20 @@ def display(name, qs, settings, schedule):
     timer1.timeout.connect(lambda: updateCurve(reward_curve,qs[0],x_reward,y_reward))
     timer1.start(10)
 
-    # Return
     l1.nextRow()
-    p12 = l1.addPlot(title='Return per 24h')
-    p12.showGrid(x=True, y=True)
+    p12 = l1.addPlot(title="Discounted Rewards")
     p12.addItem(pg.InfiniteLine(pos=0, angle=0, pen=pg.mkPen('w', width=3), movable=False))
-    return_curve = p12.plot(pen=pg.mkPen((235, 64, 52), width=2), name='Reward')
+    p12.showGrid(x=True, y=True)
+    discounted_reward_curve = p12.plot(pen=pg.mkPen((252, 152, 3), width=2), name='Discounted Reward')
     p12.setXRange(0, schedule[0]*schedule[1] + settings['num_workers'])
-    x_return = []
-    y_return = []
-    timer2 = QtCore.QTimer()
-    timer2.timeout.connect(lambda: updateCurve(return_curve,qs[1],x_return,y_return))
-    timer2.start(50)
-
-    l.nextCol()
+    x_discounted_reward = []
+    y_discounted_reward = []
+    timer12 = QtCore.QTimer()
+    timer12.timeout.connect(lambda: updateCurve(discounted_reward_curve,qs[0],x_discounted_reward,y_discounted_reward))
+    timer12.start(10)
 
     ## Control system
-    l2 = l.addLayout(col=3, row=0, colspan=1, rowspan=1)
+    l2 = l.addLayout(rowspan=1, colspan=2)
 
     #Epsilon
     p21 = l2.addPlot(title='Epsilon')
@@ -72,10 +69,10 @@ def display(name, qs, settings, schedule):
     y_epsilon = []
     timer3 = QtCore.QTimer()
     timer3.timeout.connect(lambda: updateCurve(epsilon_cuve,qs[4],x_epsilon,y_epsilon))
-    timer3.start(50)
+    timer3.start(10)
     
     # Loss
-    p22 = l2.addPlot(title='Loss', rowspan=2)
+    p22 = l2.addPlot(title='Train Loss', rowspan=2)
     p22.showGrid(x=True, y=True)
     p22.addLegend(offset=(-10, 10))
     loss_curve_critic = p22.plot(pen=pg.mkPen((0, 3, 252), width=3), name='Critic')
@@ -100,42 +97,63 @@ def display(name, qs, settings, schedule):
     timer4 = QtCore.QTimer()
     timer4.timeout.connect(lambda: updateLoss([loss_curve_actor, loss_curve_critic],qs[6],
                                                 x_loss_actor,y_loss_actor,x_loss_crtitc,y_loss_critic))
-    timer4.start(50)
+    timer4.start(10)
 
-    p23 = l2.addPlot(title='Number of Trades per Hour')
-    p23.showGrid(x=True, y=True)
-    nt_cuve = p23.plot(pen=pg.mkPen((3, 50, 252), width=2), name='Number of Trades')
-    p23.setXRange(0, schedule[0]*schedule[1] + settings['num_workers'])
+    # Action Distribution
+    l2.nextRow()
+    p24 = l2.addPlot(title='Action Distribution')
+    p24.showGrid(x=True, y=True)
+    
+    ## Memory
+    l.nextRow()
+    l4 = l.addLayout(rowspan=2, colspan=1)
+
+    ## Trading
+    l.nextCol()
+    l3 = l.addLayout()
+    # Return
+    p33 = l3.addPlot(title='Return per 24h')
+    p33.showGrid(x=True, y=True)
+    p33.addItem(pg.InfiniteLine(pos=0, angle=0, pen=pg.mkPen('w', width=3), movable=False))
+    return_curve = p33.plot(pen=pg.mkPen((235, 64, 52), width=2), name='Reward')
+    p33.setXRange(0, schedule[0]*schedule[1] + settings['num_workers'])
+    x_return = []
+    y_return = []
+    timer2 = QtCore.QTimer()
+    timer2.timeout.connect(lambda: updateCurve(return_curve,qs[1],x_return,y_return))
+    timer2.start(10)
+
+    # Num Trades
+    l3.nextRow()
+    p31 = l3.addPlot(title='Number of Trades per Hour')
+    p31.showGrid(x=True, y=True)
+    nt_cuve = p31.plot(pen=pg.mkPen((3, 50, 252), width=2), name='Number of Trades')
+    p31.setXRange(0, schedule[0]*schedule[1] + settings['num_workers'])
     x_nt = []
     y_nt = []
     timer5 = QtCore.QTimer()
     timer5.timeout.connect(lambda: updateCurve(nt_cuve,qs[3],x_nt,y_nt))
     timer5.start(50)
 
-    # Action Distribution
-    l2.nextRow()
-    p24 = l2.addPlot(title='Action Distribution')
-    p24.showGrid(x=True, y=True)
-
     # Average Trade Duration
-    p25 = l2.addPlot(title='Average Trade Duration')
-    p25.showGrid(x=True, y=True)
-    td_curve = p25.plot(pen=pg.mkPen((3, 219, 252), width=2), name='Trade Duration')
-    p25.setXRange(0, schedule[0]*schedule[1] + settings['num_workers'])
+    l3.nextRow()
+    p32 = l3.addPlot(title='Average Trade Duration')
+    p32.showGrid(x=True, y=True)
+    td_curve = p32.plot(pen=pg.mkPen((3, 219, 252), width=2), name='Trade Duration')
+    p32.setXRange(0, schedule[0]*schedule[1] + settings['num_workers'])
     x_td = []
     y_td = []
     timer6 = QtCore.QTimer()
     timer6.timeout.connect(lambda: updateCurve(td_curve,qs[2],x_td,y_td))
-    timer6.start(50)
+    timer6.start(10)
 
     # Trades
-    l3 = l.addLayout(col=0, row=3, colspan=4, rowspan=1)
-    p31 = l3.addPlot(title="Trades")
-    p31.showGrid(x=True, y=True)
-    p31.addItem(pg.InfiniteLine(pos=0, angle=0, pen=pg.mkPen('w', width=3), movable=False))
-    wins = p31.plot(pen=None, symbolBrush=(11, 156, 3), symbolPen=(11, 156, 3), symbol='t1', symbolSize=12)
-    losses = p31.plot(pen=None, symbolBrush=(112, 0, 0), symbolPen=(156, 3, 3), symbol='t', symbolSize=12)
-    p31.setXRange(0,500)
+    p34 = l3.addPlot(title="Trades", rowspan=2)
+    p34.showGrid(x=True, y=True)
+    p34.addItem(pg.InfiniteLine(pos=0, angle=0, pen=pg.mkPen('w', width=3), movable=False))
+    wins = p34.plot(pen=None, symbolBrush=(11, 156, 3), symbolPen=(11, 156, 3), symbol='t1', symbolSize=12)
+    losses = p34.plot(pen=None, symbolBrush=(112, 0, 0), symbolPen=(156, 3, 3), symbol='t', symbolSize=12)
+    p34.setXRange(0,500)
     x_wins = []
     y_wins = []
     x_losses = []
@@ -167,18 +185,8 @@ def display(name, qs, settings, schedule):
             pass
 
     timer7 = QtCore.QTimer()
-    timer7.timeout.connect(lambda: updateReturn(p31,wins,losses,qs[5],x_wins,y_wins,x_losses,y_losses))
+    timer7.timeout.connect(lambda: updateReturn(p34,wins,losses,qs[5],x_wins,y_wins,x_losses,y_losses))
     timer7.start(5)
-
-    # Epsilon
-    # p3 = win.addPlot(title="Actions")
-    # epsilon_curve = p3.plot(pen='y')
-    # x_epsilon = []
-    # y_epsilon = []
-    # timer3 = QtCore.QTimer()
-    # timer3.timeout.connect(lambda: updateCurve(epsilon_curve,qs[2],x_epsilon,y_epsilon))
-    # timer3.start(50)  
-
 
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
             QtGui.QApplication.instance().exec_()
@@ -202,5 +210,5 @@ if __name__ == '__main__':
                 'verbose': 1,
                 }
     schedule = [1,10,5]
-    display('abc', [[1],[2],[3],[4],[5],[6]], settings, schedule)
+    display('abc', [[0],[1],[2],[3],[4],[5],[6]], settings, schedule)
 

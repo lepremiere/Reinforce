@@ -11,7 +11,7 @@ class Agent(Process):
         self.agent_in_q = in_q
         self.distributor_in_q = out_q
         self.news_q = news_q
-        self.num_observations = (self.env.observation_space[0], self.env.observation_space[1])
+        self.num_observations = (self.env.observation_space[0]+settings['future'], self.env.observation_space[1])
         self.num_actions = self.env.action_space_n
         self.num_values = 1
         self.game_size =  (len(self.env.tracker_list),)
@@ -33,7 +33,7 @@ class Agent(Process):
         if np.random.rand(1,1) > self.epsilon:
             policy = self.model.actor(inputs=states, training=False)
         else:
-            policy = [[0.25,0.25,0.25,0.25] for _ in range(len(ns))]
+            policy = [[0.4,0.3,0.3] for _ in range(len(ns))]
             if self.epsilon > self.epsilon_limit:
                 self.epsilon *= self.epsilon_decay  
                 if self.temp_epsilon - self.epsilon >= 0.01:

@@ -9,8 +9,7 @@ from multiprocessing import Pool, cpu_count, freeze_support
 from multiprocessing.pool import ThreadPool
 from mplfinance._utils import IntegerIndexDateTimeFormatter
 
-from lib.tech_indicators import * 
-from agent import *
+from libs.agent import *
 
 ####################################################################################################
 # Class
@@ -302,7 +301,7 @@ if __name__ == "__main__":
     
     agent = Agent()
     bt = Backtesting(symbol='US30',
-                     timeframe='M1',
+                     timeframe='H1',
                      agent=agent,
                      fraction=(10000, 10000),
                      equity=1000,

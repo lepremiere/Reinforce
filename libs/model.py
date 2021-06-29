@@ -31,122 +31,25 @@ class NN(Model):
 
         state = Input(shape=self.num_observations, name='Input')
         game = Input(shape=self.game_size, name='Input_game')
+        
+        x = BatchNormalization()(state)
+        # x = CuDNNLSTM(1024, return_sequences=False)(x)
+        # x = Activation("tanh")(x)
+        x = Dense(512, activation='relu')(x)
+        x = Dense(256, activation='relu')(x)
+        x = Dense(64, activation='relu')(x)
+        x = Dense(8, activation='relu')(x)
+        x = Flatten()(x)
 
-        # Input Block
-        x = Conv1D(16, kernel_size=7, strides=2, padding='same')(state)
-        x = BatchNormalization()(x)
-        x = Activation('relu')(x)
-        x = MaxPool1D(pool_size=3, strides=2, padding='same')(x)
-
-        # ResNet Block
-        b11 = Conv1D(32, kernel_size=1, strides=2, padding='same')(x)
-        b11 = BatchNormalization()(b11)
-        b11 = Activation('relu')(b11)
-        b11 = Conv1D(32, kernel_size=3, strides=1, padding='same')(b11)
-        b11 = BatchNormalization()(b11)
-        b11 = Activation('relu')(b11)
-        b11 = Conv1D(32, kernel_size=1, strides=1, padding='same')(b11)
-        b11 = BatchNormalization()(b11)
-        b11 = Add()([b11, Conv1D(32, kernel_size=1, strides=2)(x)])
-
-        b11 = Activation('relu')(b11)
-
-        # ResNet Block
-        b12 = Conv1D(64, kernel_size=3, strides=2, padding='same')(b11)
-        b12 = BatchNormalization()(b12)
-        b12 = Activation('relu')(b12)
-        b12 = Conv1D(64, kernel_size=3, strides=1, padding='same')(b12)
-        b12 = BatchNormalization()(b12)
-        b12 = Activation('relu')(b12)
-        b12 = Conv1D(64, kernel_size=1, strides=1, padding='same')(b12)
-        b12 = BatchNormalization()(b12)
-        b12 = Activation('relu')(b12)
-        b12 = Add()([b12, Conv1D(64, kernel_size=1, strides=2)(b11)])
-
-        b12 = Activation('relu')(b12)
-
-        # ResNet Block
-        b13 = Conv1D(128, kernel_size=3, strides=2, padding='same')(b12)
-        b13 = BatchNormalization()(b13)
-        b13 = Activation('relu')(b13)
-        b13 = Conv1D(128, kernel_size=3, strides=1, padding='same')(b13)
-        b13 = BatchNormalization()(b13)
-        b13 = Activation('relu')(b13)
-        b13 = Conv1D(128, kernel_size=1, strides=1, padding='same')(b13)
-        b13 = BatchNormalization()(b13)
-        b13 = Activation('relu')(b13)
-        b13 = Add()([b13, Conv1D(128, kernel_size=1, strides=2)(b12)])
-
-        b13 = Activation('relu')(b13)
-
-        # ResNet Block
-        b14 = Conv1D(256, kernel_size=3, strides=2, padding='same')(b13)
-        b14 = BatchNormalization()(b14)
-        b14 = Activation('relu')(b14)
-        b14 = Conv1D(256, kernel_size=3, strides=1, padding='same')(b14)
-        b14 = BatchNormalization()(b14)
-        b14 = Activation('relu')(b14)
-        b14 = Conv1D(256, kernel_size=1, strides=1, padding='same')(b14)
-        b14 = BatchNormalization()(b14)
-        b14 = Activation('relu')(b14)
-        b14 = Add()([b14, Conv1D(256, kernel_size=1, strides=2)(b13)])
-
-        b14 = Activation('relu')(b14)
-
-        # ResNet Block
-        b15 = Conv1D(256, kernel_size=3, strides=2, padding='same')(b14)
-        b15 = BatchNormalization()(b15)
-        b15 = Activation('relu')(b15)
-        b15 = Conv1D(256, kernel_size=3, strides=1, padding='same')(b15)
-        b15 = BatchNormalization()(b15)
-        b15 = Activation('relu')(b15)
-        b15 = Conv1D(256, kernel_size=1, strides=1, padding='same')(b15)
-        b15 = BatchNormalization()(b15)
-        b15 = Activation('relu')(b15)
-        b15 = Add()([b15, Conv1D(256, kernel_size=1, strides=2)(b14)])
-
-        b15 = Activation('relu')(b15)
-
-         # ResNet Block
-        b16 = Conv1D(512, kernel_size=3, strides=2, padding='same')(b15)
-        b16 = BatchNormalization()(b16)
-        b16 = Activation('relu')(b16)
-        b16 = Conv1D(512, kernel_size=3, strides=1, padding='same')(b16)
-        b16 = BatchNormalization()(b16)
-        b16 = Activation('relu')(b16)
-        b16 = Conv1D(512, kernel_size=1, strides=1, padding='same')(b16)
-        b16 = BatchNormalization()(b16)
-        b16 = Activation('relu')(b16)
-        b16 = Add()([b16, Conv1D(512, kernel_size=1, strides=2)(b15)])
-
-        b16 = Activation('relu')(b16)
-
-        # Output Block
-        x = GlobalAvgPool1D()(b16)
-        x = Dense(1024)(x)
-
-        # LSTM Block
-        w = BatchNormalization()(state)
-        w = CuDNNLSTM(128, return_sequences=False)(w)
-        w = Dropout(0.3)(w)
-        w = Activation('relu')(w)
-        w = Flatten()(w)
-
-        out = Concatenate()([x, w, game])
+        out = Concatenate()([x, game])
 
         actor_in = Dense(64, activation='relu')(out)
-        actor_in = Dense(32, activation='relu')(actor_in)
-        actor_in = Dense(16, activation='relu')(actor_in)
-        actor_out = Dense(self.num_actions,
-                         activation='softmax',
-                         name='Dense_Actor_1')(actor_in)
+        actor_out = Dense(self.num_actions, activation='softmax', name='Dense_Actor_out')(actor_in)
         self.actor = Model(inputs=[state, game], outputs=actor_out)
         self.actor.compile(loss="categorical_crossentropy", optimizer=RMSProp(lr=self.lr_actor))
 
         critic_in = Dense(64, activation='relu')(out)
-        critic_in = Dense(32, activation='relu')(critic_in)
-        critic_in = Dense(16, activation='relu')(critic_in)
-        critic_out = Dense(self.num_values, activation='linear')(critic_in)
+        critic_out = Dense(self.num_values, activation='linear', name='Dense_Critic_out')(critic_in)
         self.critic = Model(inputs=[state, game], outputs=critic_out)
         self.critic.compile(loss="mse", optimizer=RMSprop(lr=self.lr_critic)) 
 
